@@ -1,15 +1,16 @@
-// DAR Tracker — secure Clockify proxy
+// DAR Tracker — secure Clockify proxy (ES256 / JWKS)
 //
-// Verifies incoming requests carry a valid Supabase session JWT, then
-// forwards them to the Clockify API with the API key attached server-side.
+// Supabase now signs session JWTs with an ECC (ES256) private key.
+// We verify incoming tokens against Supabase's published public keys
+// (JWKS) rather than a shared secret.
 //
-// The Clockify key never leaves this val. The frontend never sees it.
+// The Clockify API key never leaves this val.
 //
-// Required environment variables (set in Val.town → val → Env vars):
-//   CLOCKIFY_API_KEY     — the Clockify API key
-//   SUPABASE_JWT_SECRET  — Supabase → Project Settings → API → JWT Secret
+// Required environment variables:
+//   CLOCKIFY_API_KEY  — the Clockify API key
+//   SUPABASE_URL      — your Supabase project URL, e.g. https://xxx.supabase.co
 
-import { jwtVerify } from "https://esm.sh/jose@5.9.6";
+import { jwtVerify, createRemoteJWKSet } from "https://esm.sh/jose@5.9.6";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -27,37 +28,46 @@ function json(status: number, body: unknown): Response {
   });
 }
 
+// Cache the JWKS resolver so we don't refetch keys on every request.
+let jwksCache: ReturnType<typeof createRemoteJWKSet> | null = null;
+function getJwks(supabaseUrl: string) {
+  if (!jwksCache) {
+    jwksCache = createRemoteJWKSet(
+      new URL(`${supabaseUrl.replace(/\/$/, "")}/auth/v1/.well-known/jwks.json`),
+    );
+  }
+  return jwksCache;
+}
+
 export default async function (req: Request): Promise<Response> {
-  // Preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: CORS_HEADERS });
   }
 
-  // 1. Extract bearer token
+  // 1. Bearer token
   const auth = req.headers.get("Authorization") || "";
   const match = auth.match(/^Bearer\s+(.+)$/i);
-  if (!match) {
-    return json(401, { error: "missing_bearer_token" });
-  }
+  if (!match) return json(401, { error: "missing_bearer_token" });
   const token = match[1];
 
-  // 2. Verify JWT against Supabase's shared secret.
-  //    Supabase issues HS256-signed tokens; verifying with the JWT secret
-  //    proves the request came from a signed-in Supabase user.
-  const secret = Deno.env.get("SUPABASE_JWT_SECRET");
-  if (!secret) {
-    return json(500, { error: "proxy_misconfigured_missing_jwt_secret" });
+  // 2. Verify against Supabase's published public keys
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  if (!supabaseUrl) {
+    return json(500, { error: "proxy_misconfigured_missing_supabase_url" });
   }
 
   try {
-    await jwtVerify(token, new TextEncoder().encode(secret), {
-      algorithms: ["HS256"],
+    await jwtVerify(token, getJwks(supabaseUrl), {
+      algorithms: ["ES256"],
     });
-  } catch {
-    return json(401, { error: "invalid_or_expired_token" });
+  } catch (e) {
+    return json(401, {
+      error: "invalid_or_expired_token",
+      detail: (e as Error).message,
+    });
   }
 
-  // 3. Forward to Clockify with the server-held API key.
+  // 3. Forward to Clockify with the server-held API key
   const clockifyKey = Deno.env.get("CLOCKIFY_API_KEY");
   if (!clockifyKey) {
     return json(500, { error: "proxy_misconfigured_missing_clockify_key" });

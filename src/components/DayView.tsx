@@ -7,19 +7,30 @@ import { TaskList } from '@/components/TaskList';
 import { TaskForm } from '@/components/TaskForm';
 import { ClockifyImportPanel } from '@/components/ClockifyImportPanel';
 import { EmptyDay } from '@/components/EmptyDay';
-import { useDayTasks } from '@/lib/hooks/useDayTasks';
 import { formatDuration, hoursToSeconds } from '@/lib/duration';
-import type { Task } from '@/lib/database.types';
+import type { NewTask, Task } from '@/lib/database.types';
 
 interface Props {
   date: Date;
-  dateKey: string;
+  tasks: Task[];
+  loading: boolean;
+  addTask: (partial: Omit<NewTask, 'date'>) => Promise<void>;
+  updateTask: (id: string, patch: Partial<Task>) => Promise<void>;
+  deleteTask: (id: string) => Promise<void>;
   onPrev: () => void;
   onNext: () => void;
 }
 
-export function DayView({ date, dateKey, onPrev: _onPrev, onNext: _onNext }: Props) {
-  const { tasks, loading, addTask, updateTask, deleteTask } = useDayTasks(dateKey);
+export function DayView({
+  date,
+  tasks,
+  loading,
+  addTask,
+  updateTask,
+  deleteTask,
+  onPrev: _onPrev,
+  onNext: _onNext,
+}: Props) {
   const [formTask, setFormTask] = useState<Task | 'new' | null>(null);
   const [showImport, setShowImport] = useState(false);
 
@@ -41,7 +52,6 @@ export function DayView({ date, dateKey, onPrev: _onPrev, onNext: _onNext }: Pro
   return (
     <>
       <GrainSurface className="rounded-2xl px-7 py-6">
-        {/* Header */}
         <div className="relative flex items-start justify-between mb-2">
           <div>
             <p className="text-xs uppercase tracking-kicker text-ink-500">Daily record</p>
@@ -61,7 +71,6 @@ export function DayView({ date, dateKey, onPrev: _onPrev, onNext: _onNext }: Pro
           />
         ) : (
           <>
-            {/* Hero numeral */}
             <div className="relative flex items-end gap-4 my-5">
               <SunIllustration size={64} className="absolute right-0 -top-4" />
               <div className="font-display text-4xl font-black leading-none text-clay-500">

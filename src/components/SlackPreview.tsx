@@ -1,11 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import { useDayTasks } from '@/lib/hooks/useDayTasks';
 import { formatDuration, hoursToSeconds } from '@/lib/duration';
 import type { Task } from '@/lib/database.types';
 
 interface Props {
-  dateKey: string;
+  tasks: Task[];
 }
 
 function buildReport(tasks: Task[]): string {
@@ -15,7 +14,7 @@ function buildReport(tasks: Task[]): string {
     const label = t.task_label ? `${t.task_label}: ${t.description}` : t.description;
     lines.push(`Task ${i + 1}: ${label}`);
     lines.push(`- time spent: ${formatDuration(hoursToSeconds(t.hours))}`);
-    lines.push(`- Links: ${t.links || 'None'}`);
+    lines.push(`- links: ${t.links || 'None'}`);
     lines.push(`- blockers: ${t.blockers || 'None'}`);
     lines.push(`- next steps: ${t.next_steps || 'None'}`);
   });
@@ -24,8 +23,7 @@ function buildReport(tasks: Task[]): string {
   return lines.join('\n');
 }
 
-export function SlackPreview({ dateKey }: Props) {
-  const { tasks } = useDayTasks(dateKey);
+export function SlackPreview({ tasks }: Props) {
   const [copied, setCopied] = useState(false);
 
   const report = useMemo(() => buildReport(tasks), [tasks]);
