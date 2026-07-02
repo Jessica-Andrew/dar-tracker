@@ -120,33 +120,56 @@ user's tasks for this date."
 
 ### `clockify_config`
 
-One row per user. Holds the Clockify API key, proxy URL, and cached
-workspace/user IDs so we don't refetch them every day.
+One row per user. Holds workspace/user IDs cached from Clockify so we
+don't refetch them every day. **The Clockify API key is not stored here**
+— see "The secure key pattern" below.
 
 | Column | Type |
 |---|---|
 | `user_id` | uuid, primary key, FK to `auth.users` |
-| `api_key` | text |
-| `proxy_url` | text |
 | `workspace_id` | text, nullable |
 | `clockify_user_id` | text, nullable |
 | `updated_at` | timestamptz |
 
-### On storing the Clockify API key
+### The secure key pattern
 
-Currently: kept in Supabase, encrypted at rest by Supabase but readable
-by the frontend when the user is signed in. Fine for a personal tool,
-but worth naming as a known trade-off:
+The Clockify API key lives **only in the Val.town proxy**, set as an
+environment variable at deploy time. The frontend never sees the key,
+and neither does Supabase.
 
-- **Ideal:** the API key lives only on the proxy as an environment
-  variable; the frontend never sees it. That means the proxy has to know
-  which user is calling it (introduces auth on the proxy) and the app
-  loses the "paste your own key" flexibility.
-- **Current:** simpler, works, but the key is technically retrievable
-  by anyone who compromises my Supabase session token.
+Flow for a Clockify request:
 
-For a single-user tool used from personal devices, the current approach
-is a reasonable trade. Revisit if this ever becomes multi-user.
+1. Frontend gathers the user's Supabase session JWT
+2. Frontend sends the request to the proxy with
+   `Authorization: Bearer <jwt>`
+3. Proxy verifies the JWT against Supabase's public key
+4. If valid, proxy attaches its own `X-Api-Key` header and forwards
+   to `api.clockify.me`
+5. Result comes back through the proxy to the frontend
+
+What this buys us:
+
+- **Key never leaves the proxy.** Even a compromised browser session
+  can't exfiltrate the Clockify credential.
+- **Proxy can't be abused.** Without a valid Supabase JWT, requests
+  bounce with a 401 — anyone who finds the proxy URL can't use it.
+- **UI is simpler.** No "paste your API key" or "paste your proxy URL"
+  fields. The proxy URL is a build-time constant; the key is a
+  server-side secret.
+
+Trade-off: rotating the Clockify key or switching Clockify accounts
+requires editing the val's env vars, not a UI form. For a personal
+single-user tool, this is a reasonable trade.
+
+### Proxy environment variables
+
+Set on the val itself (Val.town → val → Env vars):
+
+```
+CLOCKIFY_API_KEY   the Clockify API key
+SUPABASE_URL       your Supabase project URL
+SUPABASE_JWT_SECRET  the Supabase JWT secret (Project Settings → API → JWT Secret)
+```
 
 ## Frontend structure
 
@@ -179,13 +202,13 @@ Frontend (`.env.local`, never committed):
 ```
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
+VITE_CLOCKIFY_PROXY_URL=
 ```
 
 `.env.local` is gitignored. Vercel gets these via project settings.
 
-The Clockify API key and proxy URL are **user-entered** in the app UI
-and stored in Supabase — not env vars. This lets me change them without
-redeploying, and keeps them out of the source tree.
+The Clockify API key is **not an env var on the frontend**. It lives
+only on the Val.town proxy (see "The secure key pattern" above).
 
 ## Deployment
 
