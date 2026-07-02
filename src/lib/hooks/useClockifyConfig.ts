@@ -30,13 +30,19 @@ export function useClockifyConfig() {
     };
   }, []);
 
-  const saveConfig = async (patch: Partial<ClockifyConfig>) => {
+  const saveConfig = async (patch: Partial<Omit<ClockifyConfig, 'user_id' | 'updated_at'>>) => {
     const { data: userData } = await supabase.auth.getUser();
     const user_id = userData.user?.id;
     if (!user_id) throw new Error('not_signed_in');
+    const payload: ClockifyConfig = {
+      user_id,
+      workspace_id: patch.workspace_id ?? null,
+      clockify_user_id: patch.clockify_user_id ?? null,
+      updated_at: new Date().toISOString(),
+    };
     const { data, error } = await supabase
       .from('clockify_config')
-      .upsert({ user_id, ...patch, updated_at: new Date().toISOString() })
+      .upsert(payload)
       .select()
       .single();
     if (error) throw error;
