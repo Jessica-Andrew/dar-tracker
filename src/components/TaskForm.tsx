@@ -7,7 +7,7 @@ import type { NewTask, Task } from '@/lib/database.types';
 interface Props {
   task: Task | 'new' | null;
   onClose: () => void;
-  onSave: (data: Omit<NewTask, 'source'>) => Promise<void>;
+  onSave: (data: Omit<NewTask, 'source' | 'date'>) => Promise<void>;
   onDelete: () => Promise<void>;
 }
 

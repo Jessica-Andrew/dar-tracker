@@ -42,7 +42,8 @@ export function useClockifyConfig() {
     };
     const { data, error } = await supabase
       .from('clockify_config')
-      .upsert(payload)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .upsert(payload as any)
       .select()
       .single();
     if (error) throw error;

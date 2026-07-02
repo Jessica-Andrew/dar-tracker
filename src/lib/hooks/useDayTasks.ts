@@ -40,7 +40,8 @@ export function useDayTasks(date: string) {
 
     const { data, error } = await supabase
       .from('tasks')
-      .insert({ ...partial, date, user_id })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .insert({ ...partial, date, user_id } as any)
       .select()
       .single();
     if (error) throw error;
@@ -50,7 +51,8 @@ export function useDayTasks(date: string) {
   const updateTask = async (id: string, patch: Partial<Task>) => {
     const { data, error } = await supabase
       .from('tasks')
-      .update(patch)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .update(patch as any)
       .eq('id', id)
       .select()
       .single();
