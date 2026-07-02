@@ -1,0 +1,36 @@
+@import './tokens.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base overrides */
+@layer base {
+  html,
+  body {
+    background: var(--bg-page);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Selection uses the clay tint so it stays in the palette */
+  ::selection {
+    background: var(--clay-100);
+    color: var(--ink-900);
+  }
+}
+
+/* Reusable grain texture — apply to any parchment surface that needs it */
+@layer components {
+  .grain::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: var(--grain-opacity);
+    background-image: radial-gradient(var(--grain-color) 0.5px, transparent 0.5px);
+    background-size: var(--grain-size) var(--grain-size);
+    pointer-events: none;
+  }
+}

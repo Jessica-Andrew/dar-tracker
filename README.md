@@ -1,66 +1,94 @@
 # DAR Tracker
 
-A personal tool for logging daily tasks and generating the Daily Activities Report
-(DAR) format for Slack, with optional import from Clockify.
+A personal daily task tracker that generates the Daily Activities Report
+format for Slack, with optional Clockify import. Works across laptop,
+iPad, and iPhone once signed in.
 
-## What's in here
+## Stack
 
-- `index.html` — the whole app. Single file, no build step, no dependencies.
-  Open it directly in a browser or serve it statically.
+- **Frontend** — React + Vite + TypeScript + Tailwind + Radix + shadcn-style primitives
+- **Backend** — Supabase (Postgres + Auth via GitHub OAuth)
+- **Clockify proxy** — Val.town, holds the Clockify API key server-side
 
-## How it works
+See `ARCHITECTURE.md` for the full system design and `DESIGN_TOKENS.md`
+for the visual system.
 
-- **Storage:** tasks are saved in the browser's `localStorage`, keyed by date.
-  Data lives in whichever browser you use it in — it won't follow you across
-  devices, same as most local-first tools.
-- **Clockify import:** pulls your time entries for a given day and lets you
-  bring them in as tasks (individually, or merged into one — e.g. combining
-  all your standups/meetings into a single "Meetings" entry).
-- **Clockify proxy:** Clockify's API blocks direct browser requests (CORS),
-  so API calls route through a small proxy instead of hitting Clockify
-  directly. That proxy is a separate service — see below.
+## Getting started
 
-## Running it locally
+### 1. Install
+```bash
+npm install
+```
 
-No build step needed. Either:
+### 2. Set up Supabase
+1. Create a project at [supabase.com](https://supabase.com)
+2. In the SQL editor, run the migration from `supabase/migrations/0001_initial_schema.sql`
+3. Auth → Providers → enable GitHub, add a GitHub OAuth app
+   (its callback URL is `<your-supabase-url>/auth/v1/callback`)
+4. Copy your project URL and anon key into `.env.local`
 
-- Open `index.html` directly in your browser, or
-- Serve it with any static server, e.g. `npx serve .` or Python's
-  `python3 -m http.server`
+### 3. Set up the Val.town proxy
+1. In [val.town](https://val.town), create a new HTTP val
+2. Paste in `proxy/dar-tracker-server.val.ts`
+3. Add two environment variables on the val:
+   - `CLOCKIFY_API_KEY` — your Clockify API key
+   - `SUPABASE_JWT_SECRET` — Supabase → Project Settings → API → JWT Secret
+4. Copy the val's URL into `.env.local` as `VITE_CLOCKIFY_PROXY_URL`
+
+### 4. Run
+```bash
+cp .env.example .env.local  # fill in the values
+npm run dev
+```
 
 ## Deploying
 
-**GitHub Pages (simplest, free):**
-1. Push this repo to GitHub
-2. Repo Settings → Pages → Deploy from branch → select `main` → root
-3. GitHub gives you a URL like `https://yourname.github.io/dar-tracker/`
+Push to `main` on GitHub → import the repo in Vercel → add the same three
+env vars in Vercel project settings. Every push to `main` auto-deploys.
 
-**Vercel / Netlify (auto-deploy on every push):**
-1. Import the repo on vercel.com or netlify.com
-2. No build command needed — it's a static site
-3. Every `git push` triggers a redeploy automatically
+## Project structure
 
-## The Clockify proxy
+```
+src/
+├── App.tsx                     — auth gate + shell switch
+├── main.tsx                    — React entry
+├── styles/
+│   ├── tokens.css              — design tokens (source of truth)
+│   └── globals.css             — Tailwind layers + base
+├── components/
+│   ├── AuthGate.tsx            — sign-in screen
+│   ├── AppShell.tsx            — signed-in layout, date state
+│   ├── DayView.tsx             — the main daily surface
+│   ├── EmptyDay.tsx            — "quiet morning" empty state
+│   ├── TaskList.tsx            — list of tasks with seed markers
+│   ├── TaskForm.tsx            — add/edit modal
+│   ├── ClockifyImportPanel.tsx — fetch + merge + plant
+│   ├── SlackPreview.tsx        — DAR-formatted output + copy
+│   └── ui/                     — primitives (Button, Modal, Input, etc.)
+└── lib/
+    ├── supabase.ts             — Supabase client
+    ├── clockify.ts             — Clockify proxy client
+    ├── duration.ts             — hours ↔ seconds ↔ "1h 42m"
+    ├── utils.ts                — cn (Tailwind merge)
+    ├── database.types.ts       — Supabase table types
+    └── hooks/
+        ├── useAuth.ts
+        ├── useDayTasks.ts
+        └── useClockifyConfig.ts
 
-Clockify's API doesn't allow direct browser calls to `api.clockify.me` from
-another origin, so this app optionally routes requests through a proxy you
-control. That proxy currently lives on Val.town as a separate small service
-(see `proxy/dar-tracker-server.val.ts` if included, or your existing deployed
-val). It just forwards requests to Clockify server-to-server and adds the
-CORS headers browsers require.
+supabase/migrations/            — SQL schema
+proxy/                          — Val.town proxy source
+design/                         — reference designs
+```
 
-To use it: open the app → Import from Clockify → API key tab → paste your
-Clockify API key and the proxy's URL. Both are stored in your browser only.
+## Working on this with AI
 
-If you ever want to move the proxy itself into this repo (e.g. as a Vercel
-Edge Function or Cloudflare Worker) instead of Val.town, that's a clean
-follow-up — ask your editor's AI to scaffold the equivalent for whichever
-platform you deploy the main app to, so everything lives in one place.
+The repo is structured so any AI editor (Cursor, Claude Code, Copilot) has
+the context it needs:
 
-## Editing this with AI in your editor
-
-This file is intentionally a single HTML file with inline CSS/JS, which
-keeps it easy for an AI pairing tool (Cursor, Claude Code, Copilot) to
-reason about the whole app in one context window. If it grows past a
-few thousand lines, that's a natural point to split into separate
-CSS/JS files or introduce a build step — not before.
+- **`ARCHITECTURE.md`** — how the pieces fit together, data model, security
+- **`DESIGN_TOKENS.md`** — usage guide for every design token
+- **`design/day-view-reference.png`** — the canonical visual reference
+- **`src/lib/`** — clean seams; Cursor can extend hooks or add utilities
+  without touching UI
+- **`src/components/ui/`** — primitives to compose from, not to duplicate

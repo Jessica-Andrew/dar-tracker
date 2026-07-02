@@ -1,0 +1,179 @@
+/*
+ * DAR Tracker — design tokens
+ *
+ * Source of truth for every visual value in the app. Written as CSS
+ * custom properties on :root so any component can consume them
+ * directly, and mirrored in tailwind.config.ts so utility classes
+ * resolve to the same values.
+ *
+ * If you're tempted to hard-code a hex, spacing, or duration
+ * somewhere else in the codebase: don't. Add it here first.
+ */
+
+:root {
+  /* ---------- Palette ---------- */
+  /* Warm earthy pigments, arranged in ramps so each hue has a scale */
+
+  /* Parchment — the ground everything sits on */
+  --parchment-50:  #FBF6EE;
+  --parchment-100: #F5EEDF;
+  --parchment-200: #EFE6D8;  /* canonical page background */
+  --parchment-300: #E2D5BF;  /* day chip, subtle raised surfaces */
+  --parchment-400: #DACBB1;  /* task divider lines */
+  --parchment-500: #C9BBA4;  /* grain texture, hairlines */
+  --parchment-600: #B0A48F;  /* placeholder text */
+
+  /* Clay — terracotta accent, the primary action color */
+  --clay-100: #F3D9C9;
+  --clay-300: #E29477;
+  --clay-500: #B4552D;  /* primary buttons, "harvest" emphasis */
+  --clay-600: #9A461F;
+  --clay-700: #7A3418;  /* button shadow, hover */
+  --clay-900: #4A1C0C;
+
+  /* Ochre — warm gold, secondary accent */
+  --ochre-300: #E9C578;
+  --ochre-500: #D9A648;  /* sun, positive threshold state */
+  --ochre-700: #A17820;
+
+  /* Olive — muted green, used sparingly for merged tasks and success */
+  --olive-300: #B8C084;
+  --olive-500: #9BA65D;
+  --olive-700: #6B7A3A;
+  --olive-800: #5C7A4E;  /* success text, "connected" status */
+
+  /* Ink — dark warm neutrals for text */
+  --ink-900: #2E2418;  /* primary text */
+  --ink-700: #5C4B33;  /* secondary text, body copy */
+  --ink-500: #8A7357;  /* muted text, kickers, labels */
+  --ink-300: #B0A48F;  /* placeholder */
+
+  /* Danger — reserved, used only for destructive confirmations */
+  --danger-500: #A03A24;
+  --danger-100: #F2D9D0;
+
+  /* ---------- Semantic aliases ---------- */
+  /* These are what components should consume — never reach for a
+     ramp value directly unless you're extending the token set. */
+
+  --bg-page: var(--parchment-200);
+  --bg-raised: var(--parchment-300);
+  --bg-inverse: var(--ink-900);
+
+  --text-primary: var(--ink-900);
+  --text-secondary: var(--ink-700);
+  --text-muted: var(--ink-500);
+  --text-placeholder: var(--ink-300);
+  --text-on-clay: #FFF6E9;
+  --text-on-inverse: var(--parchment-200);
+
+  --accent: var(--clay-500);
+  --accent-hover: var(--clay-600);
+  --accent-pressed: var(--clay-700);
+
+  --border-hairline: var(--parchment-500);
+  --border-divider: var(--parchment-400);
+  --border-focus: var(--clay-500);
+
+  --status-success: var(--olive-800);
+  --status-danger: var(--danger-500);
+  --status-warning: var(--ochre-700);
+
+  /* ---------- Typography ---------- */
+
+  --font-display: 'Fraunces', ui-serif, Georgia, serif;
+  --font-body: 'Space Grotesk', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Type scale — deliberately small, room for editorial contrast */
+  --text-xs: 0.6875rem;  /* 11px — kickers, captions */
+  --text-sm: 0.8125rem;  /* 13px — secondary text, footnotes */
+  --text-base: 0.875rem; /* 14px — body */
+  --text-md: 1rem;       /* 16px — inputs, larger body */
+  --text-lg: 1.125rem;   /* 18px — subheads */
+  --text-xl: 1.5rem;     /* 24px — section titles (form headers etc.) */
+  --text-2xl: 2.125rem;  /* 34px — screen titles ("Today's harvest") */
+  --text-3xl: 2.625rem;  /* 42px — sign-in title */
+  --text-4xl: 3.625rem;  /* 58px — hero numeral ("6h 20m") */
+
+  /* Line heights */
+  --leading-tight: 1;
+  --leading-snug: 1.15;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.65;
+
+  /* Letter spacing */
+  --tracking-kicker: 0.14em;  /* "DAILY RECORD" */
+
+  /* ---------- Spacing ---------- */
+  /* 4px base unit. Enough steps for real UI, not so many that
+     Cursor has to guess between two adjacent values. */
+
+  --space-1: 0.25rem;  /* 4px */
+  --space-2: 0.5rem;   /* 8px */
+  --space-3: 0.75rem;  /* 12px */
+  --space-4: 1rem;     /* 16px */
+  --space-5: 1.25rem;  /* 20px */
+  --space-6: 1.5rem;   /* 24px */
+  --space-8: 2rem;     /* 32px */
+  --space-10: 2.5rem;  /* 40px */
+  --space-12: 3rem;    /* 48px */
+  --space-16: 4rem;    /* 64px */
+
+  /* ---------- Radii ---------- */
+
+  --radius-sm: 0.375rem;  /* 6px — small pills, checkboxes */
+  --radius-md: 0.625rem;  /* 10px — buttons, mini controls */
+  --radius-lg: 0.875rem;  /* 14px — primary buttons, cards */
+  --radius-xl: 1.125rem;  /* 18px — modals */
+  --radius-2xl: 1.25rem;  /* 20px — page surfaces */
+
+  /* The asymmetric day chip — used only on the date chip. Deliberate. */
+  --radius-daychip: 30px 8px 30px 8px;
+
+  /* Seed markers get organic shapes — three variants for variety */
+  --radius-seed-a: 50% 50% 50% 4px;  /* clay */
+  --radius-seed-b: 50%;              /* olive, rotated 45deg */
+  --radius-seed-c: 4px 50% 50% 50%;  /* ochre */
+
+  /* ---------- Motion ---------- */
+
+  --duration-quick: 150ms;
+  --duration-base: 250ms;
+  --duration-medium: 350ms;
+  --duration-slow: 450ms;
+
+  /* One easing curve for everything appearing / reacting to touch.
+     Slight overshoot at the end — "settle" rather than "snap". */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Standard easing for utility moves (fades, opacity) */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ---------- Shadows ---------- */
+  /* Warm, not black. Everything casts a shadow the color of ink. */
+
+  --shadow-button: 0 3px 0 var(--clay-700);
+  --shadow-button-hover: 0 4px 0 var(--clay-700);
+  --shadow-button-pressed: 0 1px 0 var(--clay-700);
+  --shadow-card: 0 20px 50px -12px rgba(46, 36, 24, 0.5),
+                 0 0 0 0.5px rgba(184, 143, 90, 0.3);
+
+  /* ---------- Grain texture ---------- */
+  /* Applied as ::before on any parchment surface that needs it.
+     Kept as a token so density stays consistent across screens. */
+  --grain-opacity: 0.35;
+  --grain-color: var(--parchment-500);
+  --grain-size: 5px;
+}
+
+/* Reduced motion — everything animation-related shortens to near-zero.
+   Widget-level respect for prefers-reduced-motion is a hard requirement. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-quick: 0.01ms;
+    --duration-base: 0.01ms;
+    --duration-medium: 0.01ms;
+    --duration-slow: 0.01ms;
+  }
+}
