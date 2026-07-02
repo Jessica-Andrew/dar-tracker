@@ -15,7 +15,7 @@ export const ModalContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        'grain relative fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-[26rem] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl bg-parchment-200 p-6 shadow-card animate-card-in focus:outline-none',
+        'grain relative fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-[calc(100vw-1.5rem)] md:max-w-[26rem] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl bg-parchment-200 p-5 md:p-6 shadow-card animate-card-in focus:outline-none',
         className,
       )}
       {...props}
