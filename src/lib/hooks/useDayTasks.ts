@@ -49,10 +49,10 @@ export function useDayTasks(date: string) {
   };
 
   const updateTask = async (id: string, patch: Partial<Task>) => {
-    const { data, error } = await supabase
-      .from('tasks')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .update(patch as any)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const table = supabase.from('tasks') as any;
+    const { data, error } = await table
+      .update(patch)
       .eq('id', id)
       .select()
       .single();
