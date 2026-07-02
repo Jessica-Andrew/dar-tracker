@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Modal, ModalContent, ModalHeader, ModalTitle, ModalKicker } from '@/components/ui/Modal';
+import { Input, FieldLabel } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { DateChip } from '@/components/ui/DateChip';
 import { formatDuration } from '@/lib/duration';
@@ -20,6 +21,8 @@ export function ClockifyImportPanel({ open, onClose, date, onImport }: Props) {
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mergePromptOpen, setMergePromptOpen] = useState(false);
+  const [mergeName, setMergeName] = useState('Meetings');
 
   useEffect(() => {
     if (!open) return;
@@ -71,96 +74,147 @@ export function ClockifyImportPanel({ open, onClose, date, onImport }: Props) {
     await onImport(selectedEntries);
   };
 
-  const handleMerge = async () => {
+  const openMergePrompt = () => {
     if (selectedEntries.length === 0) return;
-    const name = window.prompt('Name for the combined task:', 'Meetings');
-    if (name === null) return;
-    await onImport(selectedEntries, name.trim() || 'Meetings');
+    // Suggest a smart default based on what's selected
+    const projects = new Set(selectedEntries.map((e) => e.project).filter(Boolean));
+    if (projects.size === 1) {
+      setMergeName([...projects][0]);
+    } else if (selectedEntries.every((e) => /meeting|standup|sync/i.test(e.description))) {
+      setMergeName('Meetings');
+    } else {
+      setMergeName('Meetings');
+    }
+    setMergePromptOpen(true);
+  };
+
+  const confirmMerge = async () => {
+    const name = mergeName.trim() || 'Meetings';
+    setMergePromptOpen(false);
+    await onImport(selectedEntries, name);
   };
 
   return (
-    <Modal open={open} onOpenChange={(o) => !o && onClose()}>
-      <ModalContent className="max-w-lg">
-        <ModalHeader>
-          <div className="flex items-start justify-between">
-            <div>
-              <ModalKicker>Import</ModalKicker>
-              <ModalTitle>
-                Gather from <em className="italic font-normal text-clay-500">Clockify</em>
-              </ModalTitle>
+    <>
+      <Modal open={open} onOpenChange={(o) => !o && onClose()}>
+        <ModalContent className="max-w-lg">
+          <ModalHeader>
+            <div className="flex items-start justify-between">
+              <div>
+                <ModalKicker>Import</ModalKicker>
+                <ModalTitle>
+                  Gather from <em className="italic font-normal text-clay-500">Clockify</em>
+                </ModalTitle>
+              </div>
+              <DateChip date={date} />
             </div>
-            <DateChip date={date} />
-          </div>
-        </ModalHeader>
+          </ModalHeader>
 
-        {loading && (
-          <p className="font-display italic text-sm text-ink-500 py-6 text-center">
-            gathering entries…
+          {loading && (
+            <p className="font-display italic text-sm text-ink-500 py-6 text-center">
+              gathering entries…
+            </p>
+          )}
+
+          {error && !loading && (
+            <div className="py-4">
+              <p className="text-sm text-danger-500 mb-3">{error}</p>
+              <Button onClick={() => void fetchEntries()} size="sm">
+                try again
+              </Button>
+            </div>
+          )}
+
+          {!loading && !error && entries.length === 0 && (
+            <p className="font-display italic text-sm text-ink-500 py-6 text-center">
+              nothing tracked in Clockify for this day
+            </p>
+          )}
+
+          {!loading && !error && entries.length > 0 && (
+            <>
+              <div className="flex items-center justify-between border-b-[1.5px] border-parchment-400 pb-3 mb-1">
+                <label className="flex items-center gap-2 font-display italic text-sm text-ink-700 cursor-pointer">
+                  <Checkbox checked={allChecked} onChange={toggleAll} />
+                  select all · {entries.length} entries
+                </label>
+                <div className="flex gap-1.5">
+                  <Button onClick={openMergePrompt} variant="outline" size="sm">
+                    merge as one
+                  </Button>
+                  <Button onClick={() => void handlePlant()} size="sm">
+                    plant selected
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-0 relative">
+                {entries.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="flex items-center gap-2.5 py-2.5 border-b border-parchment-400 last:border-b-0"
+                  >
+                    <Checkbox
+                      checked={!!checked[entry.id]}
+                      onChange={() =>
+                        setChecked({ ...checked, [entry.id]: !checked[entry.id] })
+                      }
+                    />
+                    <div className="flex-1 min-w-0 text-sm text-ink-900 truncate">
+                      {entry.project && (
+                        <span className="font-display italic text-ink-500">
+                          {entry.project} —{' '}
+                        </span>
+                      )}
+                      {entry.description}
+                    </div>
+                    <span className="font-display italic text-sm text-ink-700 flex-shrink-0">
+                      {formatDuration(entry.seconds)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+
+      {/* Merge naming prompt */}
+      <Modal open={mergePromptOpen} onOpenChange={setMergePromptOpen}>
+        <ModalContent>
+          <ModalHeader>
+            <ModalKicker>Merge</ModalKicker>
+            <ModalTitle>
+              Bundle into <em className="italic font-normal text-clay-500">one row</em>
+            </ModalTitle>
+          </ModalHeader>
+
+          <p className="text-sm text-ink-700 mb-4 leading-normal">
+            Combining {selectedEntries.length} {selectedEntries.length === 1 ? 'entry' : 'entries'} into a single task. What should we call it?
           </p>
-        )}
 
-        {error && !loading && (
-          <div className="py-4">
-            <p className="text-sm text-danger-500 mb-3">{error}</p>
-            <Button onClick={() => void fetchEntries()} size="sm">
-              try again
+          <FieldLabel>name for the combined task</FieldLabel>
+          <Input
+            value={mergeName}
+            onChange={(e) => setMergeName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') void confirmMerge();
+            }}
+            autoFocus
+            placeholder="Meetings"
+          />
+
+          <div className="flex items-center gap-2 mt-5">
+            <Button onClick={() => void confirmMerge()} size="sm">
+              plant it
+            </Button>
+            <Button onClick={() => setMergePromptOpen(false)} variant="ghost" size="sm">
+              cancel
             </Button>
           </div>
-        )}
-
-        {!loading && !error && entries.length === 0 && (
-          <p className="font-display italic text-sm text-ink-500 py-6 text-center">
-            nothing tracked in Clockify for this day
-          </p>
-        )}
-
-        {!loading && !error && entries.length > 0 && (
-          <>
-            <div className="flex items-center justify-between border-b-[1.5px] border-parchment-400 pb-3 mb-1">
-              <label className="flex items-center gap-2 font-display italic text-sm text-ink-700 cursor-pointer">
-                <Checkbox checked={allChecked} onChange={toggleAll} />
-                select all · {entries.length} entries
-              </label>
-              <div className="flex gap-1.5">
-                <Button onClick={() => void handleMerge()} variant="outline" size="sm">
-                  merge as one
-                </Button>
-                <Button onClick={() => void handlePlant()} size="sm">
-                  plant selected
-                </Button>
-              </div>
-            </div>
-
-            <div className="space-y-0 relative">
-              {entries.map((entry) => (
-                <div
-                  key={entry.id}
-                  className="flex items-center gap-2.5 py-2.5 border-b border-parchment-400 last:border-b-0"
-                >
-                  <Checkbox
-                    checked={!!checked[entry.id]}
-                    onChange={() =>
-                      setChecked({ ...checked, [entry.id]: !checked[entry.id] })
-                    }
-                  />
-                  <div className="flex-1 min-w-0 text-sm text-ink-900 truncate">
-                    {entry.project && (
-                      <span className="font-display italic text-ink-500">
-                        {entry.project} —{' '}
-                      </span>
-                    )}
-                    {entry.description}
-                  </div>
-                  <span className="font-display italic text-sm text-ink-700 flex-shrink-0">
-                    {formatDuration(entry.seconds)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </ModalContent>
-    </Modal>
+        </ModalContent>
+      </Modal>
+    </>
   );
 }
 

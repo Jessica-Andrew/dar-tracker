@@ -28,11 +28,13 @@ export function DayView({
   addTask,
   updateTask,
   deleteTask,
-  onPrev: _onPrev,
-  onNext: _onNext,
+  onPrev,
+  onNext,
 }: Props) {
   const [formTask, setFormTask] = useState<Task | 'new' | null>(null);
   const [showImport, setShowImport] = useState(false);
+
+  const isToday = new Date().toDateString() === date.toDateString();
 
   const totalSeconds = useMemo(
     () => tasks.reduce((sum, t) => sum + hoursToSeconds(t.hours), 0),
@@ -52,16 +54,32 @@ export function DayView({
   return (
     <>
       <GrainSurface className="rounded-2xl px-7 py-6">
-        <div className="relative flex items-start justify-between mb-2">
+      <div className="relative flex items-start justify-between mb-2">
           <div>
             <p className="text-xs uppercase tracking-kicker text-ink-500">Daily record</p>
             <h1 className="mt-1.5 font-display text-2xl font-black leading-tight text-ink-900">
-              Today's
+              {isToday ? "Today's" : "The day's"}
               <br />
               <em className="italic font-normal text-clay-500">harvest</em>
             </h1>
           </div>
-          <DateChip date={date} />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onPrev}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-ink-500 transition-colors duration-quick hover:bg-parchment-300 hover:text-clay-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500"
+              aria-label="Previous day"
+            >
+              ←
+            </button>
+            <DateChip date={date} />
+            <button
+              onClick={onNext}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-ink-500 transition-colors duration-quick hover:bg-parchment-300 hover:text-clay-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500"
+              aria-label="Next day"
+            >
+              →
+            </button>
+          </div>
         </div>
 
         {showEmpty ? (
@@ -128,7 +146,7 @@ export function DayView({
         date={date}
         onImport={async (entries, mergeName) => {
           if (mergeName) {
-            const totalHours = entries.reduce((s, e) => s + e.hours, 0);
+            const totalHours = Math.round(entries.reduce((s, e) => s + e.hours, 0) * 100) / 100;
             await addTask({
               description: mergeName,
               hours: totalHours,
@@ -142,7 +160,7 @@ export function DayView({
             for (const e of entries) {
               await addTask({
                 description: e.project ? `${e.project} — ${e.description}` : e.description,
-                hours: e.hours,
+                hours: Math.round(e.hours * 100) / 100,
                 task_label: null,
                 links: null,
                 blockers: null,
