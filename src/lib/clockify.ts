@@ -76,7 +76,9 @@ interface ClockifyTimeEntry {
   description: string;
   project: { name: string } | null;
   timeInterval: {
-    duration: string | null; // "PT1H23M45S" or null while running
+    start: string;
+    end: string | null;
+    duration: string | null;
   };
 }
 
