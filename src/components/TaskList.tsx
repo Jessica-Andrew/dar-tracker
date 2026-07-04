@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { SeedMarker } from '@/components/ui/SeedMarker';
 import { formatDuration, hoursToSeconds } from '@/lib/duration';
-import type { Task } from '@/lib/database.types';
+import type { Task } from '@/lib/types';
 
 interface Props {
   tasks: Task[];

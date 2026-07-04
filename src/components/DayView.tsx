@@ -8,7 +8,7 @@ import { TaskForm } from '@/components/TaskForm';
 import { ClockifyImportPanel } from '@/components/ClockifyImportPanel';
 import { EmptyDay } from '@/components/EmptyDay';
 import { formatDuration, hoursToSeconds } from '@/lib/duration';
-import type { NewTask, Task } from '@/lib/database.types';
+import type { NewTask, Task } from '@/lib/types';
 
 interface Props {
   date: Date;

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import type { ClockifyConfig } from '@/lib/database.types';
+import type { ClockifyConfig } from '@/lib/types';
 
 export function useClockifyConfig() {
   const [config, setConfig] = useState<ClockifyConfig | null>(null);

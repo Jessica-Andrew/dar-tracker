@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Modal, ModalContent, ModalHeader, ModalTitle, ModalKicker } from '@/components/ui/Modal';
 import { Input, FieldLabel } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import type { NewTask, Task } from '@/lib/database.types';
+import type { NewTask, Task } from '@/lib/types';
 
 interface Props {
   task: Task | 'new' | null;
