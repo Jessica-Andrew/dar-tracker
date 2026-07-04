@@ -30,6 +30,27 @@ export default [
         'warn',
         { allowConstantExport: true },
       ],
+      // TypeScript already catches genuinely undefined references at
+      // compile time, and it understands ambient/lib types (like
+      // HeadersInit) that this rule doesn't. Redundant and noisy on .ts/.tsx.
+      'no-undef': 'off',
+    },
+  },
+  {
+    // vite.config.ts runs under Node, not the browser.
+    files: ['vite.config.ts'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
+  {
+    // This file is deployed to Val.town and runs on Deno, not Node or
+    // the browser. It's the only file in the repo with that runtime.
+    files: ['proxy/**/*.ts'],
+    languageOptions: {
+      globals: {
+        Deno: 'readonly',
+      },
     },
   },
 ];

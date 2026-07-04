@@ -115,7 +115,7 @@ function TaskItem({ task, index, selectMode, selected, onActivate }: ItemProps) 
   return (
     <button
       onClick={onActivate}
-      className="group flex w-full items-center gap-3 border-b-[1.5px] border-parchment-400 py-3 text-left last:border-b-0 transition-colors duration-quick hover:bg-parchment-300/40 focus-visible:outline-none focus-visible:bg-parchment-300/40"
+      className="group flex w-full items-center gap-3 border-b-[1.5px] border-parchment-400 py-3 text-left last:border-b-0 transition-colors duration-quick hover:bg-parchment-300/40 focus-visible:outline-none focus-visible:bg-parchment-300/40 animate-task-in"
     >
       {selectMode ? (
         <Checkbox checked={selected} />

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { GrainSurface } from '@/components/ui/GrainSurface';
 import { DateChip } from '@/components/ui/DateChip';
 import { Button } from '@/components/ui/Button';
@@ -40,6 +40,19 @@ export function DayView({
     () => tasks.reduce((sum, t) => sum + hoursToSeconds(t.hours), 0),
     [tasks],
   );
+
+  // Re-trigger the tickle animation whenever the total changes.
+  // A CSS animation class alone won't replay on its own when the
+  // element re-renders in place, so we force a remount via `key`.
+  const [tickleKey, setTickleKey] = useState(0);
+  const prevTotal = useRef(totalSeconds);
+
+  useEffect(() => {
+    if (totalSeconds !== prevTotal.current) {
+      setTickleKey((k) => k + 1);
+      prevTotal.current = totalSeconds;
+    }
+  }, [totalSeconds]);
 
   if (loading) {
     return (
@@ -91,7 +104,10 @@ export function DayView({
           <>
             <div className="relative flex items-end gap-4 my-5">
               <SunIllustration size={64} className="absolute right-0 -top-4" />
-              <div className="font-display text-4xl font-black leading-none text-clay-500">
+              <div
+                key={tickleKey}
+                className="font-display text-4xl font-black leading-none text-clay-500 animate-tickle"
+              >
                 {formatDuration(totalSeconds)}
               </div>
               <p className="text-sm text-ink-700 leading-normal pb-1.5 max-w-[220px]">

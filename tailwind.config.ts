@@ -16,7 +16,7 @@ const config: Config = {
           200: '#EFE6D8',
           300: '#E2D5BF',
           400: '#DACBB1',
-          500: '#C9BBA4',
+          500: '#C9BBA4',    
           600: '#B0A48F',
         },
         clay: {
@@ -105,7 +105,8 @@ const config: Config = {
       },
       keyframes: {
         'card-in': {
-          '0%': { opacity: '0', transform: 'translate(-50%, -46%) scale(0.94)' },
+          '0%':   { opacity: '0', transform: 'translate(-50%, -42%) scale(0.88)' },
+          '60%':  { opacity: '1', transform: 'translate(-50%, -50.5%) scale(1.02)' },
           '100%': { opacity: '1', transform: 'translate(-50%, -50%) scale(1)' },
         },
         'task-in': {
@@ -118,11 +119,16 @@ const config: Config = {
           '60%':  { transform: 'translateY(1px)' },
           '100%': { transform: 'translateY(0)' },
         },
+        'fade-in': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
       },
       animation: {
-        'card-in': 'card-in 350ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+        'card-in': 'card-in 400ms cubic-bezier(0.34, 1.56, 0.64, 1)',
         'task-in': 'task-in 450ms cubic-bezier(0.34, 1.56, 0.64, 1) both',
         tickle:    'tickle 500ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+        'fade-in': 'fade-in 250ms cubic-bezier(0.4, 0, 0.2, 1)',
       },
     },
   },
