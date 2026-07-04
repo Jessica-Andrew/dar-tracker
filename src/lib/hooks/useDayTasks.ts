@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import type { NewTask, Task } from '@/lib/database.types';
+import type { NewTask, Task } from '@/lib/types';
 
 /**
  * Load and mutate the current user's tasks for a specific ISO date.
@@ -25,7 +25,12 @@ export function useDayTasks(date: string) {
       .eq('date', date)
       .order('created_at', { ascending: true });
     if (error) setError(error);
-    else setTasks(data ?? []);
+    else {
+      // Supabase reports `source` as a plain string (it's a text column,
+      // not a Postgres enum). We know our own writes only ever use one
+      // of the three TaskSource values, so this narrows it back.
+      setTasks((data ?? []) as Task[]);
+    }
     setLoading(false);
   }, [date]);
 
@@ -40,24 +45,22 @@ export function useDayTasks(date: string) {
 
     const { data, error } = await supabase
       .from('tasks')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .insert({ ...partial, date, user_id } as any)
+      .insert({ ...partial, date, user_id })
       .select()
       .single();
     if (error) throw error;
-    setTasks((prev) => [...prev, data]);
+    setTasks((prev) => [...prev, data as Task]);
   };
 
   const updateTask = async (id: string, patch: Partial<Task>) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const table = supabase.from('tasks') as any;
-    const { data, error } = await table
+    const { data, error } = await supabase
+      .from('tasks')
       .update(patch)
       .eq('id', id)
       .select()
       .single();
     if (error) throw error;
-    setTasks((prev) => prev.map((t) => (t.id === id ? data : t)));
+    setTasks((prev) => prev.map((t) => (t.id === id ? (data as Task) : t)));
   };
 
   const deleteTask = async (id: string) => {
