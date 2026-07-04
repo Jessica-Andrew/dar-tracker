@@ -1,111 +1,21 @@
-import { supabase } from './supabase';
-import { isoDurationToSeconds } from './duration';
-
-const PROXY_URL = import.meta.env.VITE_CLOCKIFY_PROXY_URL;
-
-if (!PROXY_URL) {
-  throw new Error(
-    'Missing VITE_CLOCKIFY_PROXY_URL. Copy .env.example to .env.local and fill it in.',
-  );
-}
-
-const base = PROXY_URL.replace(/\/$/, '') + '/v1';
-
-/**
- * Attach the current Supabase session JWT so the proxy can verify us.
- * If there's no active session we can't call Clockify at all — the
- * caller should have gated on auth first.
- */
-async function authedHeaders(): Promise<HeadersInit> {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-  if (!token) throw new ClockifyError('not_signed_in');
-  return {
-    Authorization: `Bearer ${token}`,
-    'Content-Type': 'application/json',
-  };
-}
-
-export class ClockifyError extends Error {
-  constructor(
-    public code:
-      | 'not_signed_in'
-      | 'network'
-      | 'unauthorized'
-      | 'proxy_misconfigured'
-      | 'clockify_error',
-    public detail?: string,
-  ) {
-    super(code);
-    this.name = 'ClockifyError';
-  }
-}
-
-async function fetchProxy<T>(path: string): Promise<T> {
-  const headers = await authedHeaders();
-  let resp: Response;
-  try {
-    resp = await fetch(base + path, { headers });
-  } catch (e) {
-    throw new ClockifyError('network', (e as Error).message);
-  }
-
-  if (resp.status === 401) {
-    throw new ClockifyError('unauthorized');
-  }
-  if (resp.status === 500) {
-    const body = await resp.text().catch(() => '');
-    throw new ClockifyError('proxy_misconfigured', body);
-  }
-  if (!resp.ok) {
-    const body = await resp.text().catch(() => '');
-    throw new ClockifyError('clockify_error', `${resp.status}: ${body.slice(0, 200)}`);
-  }
-  return resp.json() as Promise<T>;
-}
-
-// ---------- Types ----------
-
-interface ClockifyUser {
-  id: string;
-  defaultWorkspace: string;
-}
-
-interface ClockifyTimeEntry {
-  id: string;
-  description: string;
-  project: { name: string } | null;
-  timeInterval: {
-    start: string;
-    end: string | null;
-    duration: string | null;
-  };
-}
-
-export interface ClockifyEntry {
-  id: string;
-  description: string;
-  project: string;
-  seconds: number;
-  hours: number;
-}
-
-// ---------- Public API ----------
-
-export async function getCurrentUser(): Promise<ClockifyUser> {
-  return fetchProxy<ClockifyUser>('/user');
-}
-
 export async function getEntriesForDate(
   workspaceId: string,
   userId: string,
   date: Date,
 ): Promise<ClockifyEntry[]> {
-  const start = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0);
-  const end = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59);
+  // Local-time boundaries for the target day.
+  const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0);
+  const dayEnd = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59);
+
+  // Fetch a wider window (1 day before → 1 day after) so we catch cross-midnight
+  // entries. Clockify's API filters on end-time, but its UI groups by start-time —
+  // we do the same grouping ourselves below.
+  const fetchStart = new Date(dayStart.getTime() - 24 * 60 * 60 * 1000);
+  const fetchEnd = new Date(dayEnd.getTime() + 24 * 60 * 60 * 1000);
+
   const params = new URLSearchParams({
-    start: start.toISOString(),
-    end: end.toISOString(),
+    start: fetchStart.toISOString(),
+    end: fetchEnd.toISOString(),
     hydrated: 'true',
     'page-size': '200',
   });
@@ -113,7 +23,12 @@ export async function getEntriesForDate(
   const raw = await fetchProxy<ClockifyTimeEntry[]>(path);
 
   return raw
-    .filter((e) => e.timeInterval?.duration)
+    .filter((e) => {
+      if (!e.timeInterval?.duration || !e.timeInterval?.start) return false;
+      // Group by start time — matches Clockify's own daily grouping.
+      const entryStart = new Date(e.timeInterval.start);
+      return entryStart >= dayStart && entryStart <= dayEnd;
+    })
     .map((e) => {
       const seconds = isoDurationToSeconds(e.timeInterval.duration);
       return {
