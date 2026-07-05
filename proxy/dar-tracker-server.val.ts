@@ -4,7 +4,10 @@
 // We verify incoming tokens against Supabase's published public keys
 // (JWKS) rather than a shared secret.
 //
-// The Clockify API key never leaves this val.
+// The Clockify API key never leaves this val. Only an explicit
+// allowlist of operations is forwarded — everything else is rejected,
+// even with a valid token, so a leaked token can't be used to make
+// arbitrary changes to the Clockify account.
 //
 // Required environment variables:
 //   CLOCKIFY_API_KEY  — the Clockify API key
@@ -14,7 +17,7 @@ import { jwtVerify, createRemoteJWKSet } from "https://esm.sh/jose@5.9.6";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET,OPTIONS",
+  "Access-Control-Allow-Methods": "GET,POST,PATCH,OPTIONS",
   "Access-Control-Allow-Headers": "Authorization, Content-Type",
 };
 
@@ -38,6 +41,32 @@ function getJwks(supabaseUrl: string) {
   }
   return jwksCache;
 }
+
+// Every operation DAR is allowed to perform, and nothing else.
+// GET is open (read-only, low risk). Writes are individually named.
+type AllowedOp = {
+  method: string;
+  // Matches the Clockify API path this operation targets.
+  pattern: RegExp;
+  // Whitelists which body fields get forwarded — anything else the
+  // caller sends is silently dropped rather than passed through.
+  allowedBodyFields?: string[];
+};
+
+const ALLOWED_OPS: AllowedOp[] = [
+  {
+    method: "POST",
+    // Start a timer: POST /v1/workspaces/{workspaceId}/time-entries
+    pattern: /^\/v1\/workspaces\/[^/]+\/time-entries$/,
+    allowedBodyFields: ["start", "description", "projectId"],
+  },
+  {
+    method: "PATCH",
+    // Stop the running timer: PATCH /v1/workspaces/{workspaceId}/user/{userId}/time-entries
+    pattern: /^\/v1\/workspaces\/[^/]+\/user\/[^/]+\/time-entries$/,
+    allowedBodyFields: ["end"],
+  },
+];
 
 export default async function (req: Request): Promise<Response> {
   if (req.method === "OPTIONS") {
@@ -67,13 +96,39 @@ export default async function (req: Request): Promise<Response> {
     });
   }
 
-  // 3. Forward to Clockify with the server-held API key
+  // 3. Enforce the allowlist for anything that isn't a plain read.
+  const url = new URL(req.url);
+  let forwardBody: string | undefined;
+
+  if (req.method !== "GET") {
+    const op = ALLOWED_OPS.find(
+      (o) => o.method === req.method && o.pattern.test(url.pathname),
+    );
+    if (!op) {
+      return json(403, { error: "operation_not_allowed" });
+    }
+
+    let incoming: Record<string, unknown> = {};
+    try {
+      incoming = await req.json();
+    } catch {
+      return json(400, { error: "invalid_json_body" });
+    }
+
+    // Only forward fields we explicitly expect for this operation.
+    const filtered: Record<string, unknown> = {};
+    for (const field of op.allowedBodyFields ?? []) {
+      if (field in incoming) filtered[field] = incoming[field];
+    }
+    forwardBody = JSON.stringify(filtered);
+  }
+
+  // 4. Forward to Clockify with the server-held API key
   const clockifyKey = Deno.env.get("CLOCKIFY_API_KEY");
   if (!clockifyKey) {
     return json(500, { error: "proxy_misconfigured_missing_clockify_key" });
   }
 
-  const url = new URL(req.url);
   const target = "https://api.clockify.me/api" + url.pathname + url.search;
 
   const resp = await fetch(target, {
@@ -82,6 +137,7 @@ export default async function (req: Request): Promise<Response> {
       "X-Api-Key": clockifyKey,
       "Content-Type": "application/json",
     },
+    body: forwardBody,
   });
 
   const body = await resp.text();

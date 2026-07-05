@@ -248,6 +248,8 @@ function errorMessage(e: ClockifyError): string {
       return "Couldn't reach the proxy. Check your connection and try again.";
     case 'unauthorized':
       return "The proxy rejected your session. Sign out and back in?";
+    case 'forbidden':
+      return "That action isn't allowed by the proxy.";
     case 'proxy_misconfigured':
       return "The proxy isn't configured properly — check the val's environment variables.";
     case 'clockify_error':

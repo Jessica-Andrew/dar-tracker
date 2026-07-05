@@ -32,6 +32,7 @@ export class ClockifyError extends Error {
       | 'not_signed_in'
       | 'network'
       | 'unauthorized'
+      | 'forbidden'
       | 'proxy_misconfigured'
       | 'clockify_error',
     public detail?: string,
@@ -41,17 +42,27 @@ export class ClockifyError extends Error {
   }
 }
 
-async function fetchProxy<T>(path: string): Promise<T> {
+async function fetchProxy<T>(
+  path: string,
+  init?: { method?: 'GET' | 'POST' | 'PATCH'; body?: unknown },
+): Promise<T> {
   const headers = await authedHeaders();
   let resp: Response;
   try {
-    resp = await fetch(base + path, { headers });
+    resp = await fetch(base + path, {
+      method: init?.method ?? 'GET',
+      headers,
+      body: init?.body !== undefined ? JSON.stringify(init.body) : undefined,
+    });
   } catch (e) {
     throw new ClockifyError('network', (e as Error).message);
   }
 
   if (resp.status === 401) {
     throw new ClockifyError('unauthorized');
+  }
+  if (resp.status === 403) {
+    throw new ClockifyError('forbidden');
   }
   if (resp.status === 500) {
     const body = await resp.text().catch(() => '');
@@ -137,4 +148,47 @@ export async function getEntriesForDate(
         hours: seconds / 3600,
       };
     });
+}
+
+/**
+ * Start a running timer in Clockify for the given description.
+ * Returns the new time entry's id, which we store locally so we can
+ * stop it later without having to ask Clockify "what's running?".
+ */
+export async function startTimer(
+  workspaceId: string,
+  description: string,
+): Promise<{ id: string }> {
+  const entry = await fetchProxy<{ id: string }>(
+    `/workspaces/${workspaceId}/time-entries`,
+    {
+      method: 'POST',
+      body: {
+        start: new Date().toISOString(),
+        description,
+      },
+    },
+  );
+  return { id: entry.id };
+}
+
+/**
+ * Stop whatever timer is currently running for this user, and return
+ * the duration that was recorded, in hours.
+ */
+export async function stopTimer(
+  workspaceId: string,
+  userId: string,
+): Promise<{ hours: number }> {
+  const entry = await fetchProxy<ClockifyTimeEntry>(
+    `/workspaces/${workspaceId}/user/${userId}/time-entries`,
+    {
+      method: 'PATCH',
+      body: { end: new Date().toISOString() },
+    },
+  );
+  const seconds = entry.timeInterval.duration
+    ? isoDurationToSeconds(entry.timeInterval.duration)
+    : 0;
+  return { hours: seconds / 3600 };
 }
