@@ -27,7 +27,10 @@ function buildReport(tasks: Task[]): string {
 export function SlackPreview({ tasks }: Props) {
   const [copied, setCopied] = useState(false);
 
-  const report = useMemo(() => buildReport(tasks), [tasks]);
+  const report = useMemo(
+    () => buildReport(tasks.filter((t) => t.status === 'done')),
+    [tasks],
+  );
 
   const handleCopy = async () => {
     if (!report) return;
@@ -40,7 +43,7 @@ export function SlackPreview({ tasks }: Props) {
     setTimeout(() => setCopied(false), 1500);
   };
 
-  if (tasks.length === 0) return null;
+  if (tasks.every((t) => t.status !== 'done')) return null;
 
   return (
     <div>

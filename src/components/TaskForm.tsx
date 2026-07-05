@@ -30,7 +30,9 @@ export function TaskForm({ task, onClose, onSave, onDelete }: Props) {
     if (isEdit) {
       setForm({
         description: task.description,
-        hours: String(task.hours),
+        // A planned task has no meaningful hours yet — show the field
+        // empty rather than a literal "0".
+        hours: task.status === 'planned' ? '' : String(task.hours),
         task_label: task.task_label ?? '',
         links: task.links ?? '',
         blockers: task.blockers ?? '',
@@ -40,6 +42,10 @@ export function TaskForm({ task, onClose, onSave, onDelete }: Props) {
       setForm(emptyForm);
     }
   }, [task, isEdit]);
+
+  // Hours are the signal: filled = work that happened (done),
+  // empty = an intention for later (planned).
+  const isPlanning = !form.hours.trim();
 
   const handleSave = async () => {
     if (!form.description.trim()) return;
@@ -52,6 +58,7 @@ export function TaskForm({ task, onClose, onSave, onDelete }: Props) {
         links: form.links.trim() || null,
         blockers: form.blockers.trim() || null,
         next_steps: form.next_steps.trim() || null,
+        status: isPlanning ? 'planned' : 'done',
       });
     } finally {
       setSaving(false);
@@ -74,7 +81,7 @@ export function TaskForm({ task, onClose, onSave, onDelete }: Props) {
 
         <div className="space-y-3">
           <div>
-            <FieldLabel>what did you work on?</FieldLabel>
+            <FieldLabel>what are you working on?</FieldLabel>
             <Input
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -93,7 +100,7 @@ export function TaskForm({ task, onClose, onSave, onDelete }: Props) {
               />
             </div>
             <div>
-              <FieldLabel>hours</FieldLabel>
+              <FieldLabel optional="later">hours</FieldLabel>
               <Input
                 mono
                 value={form.hours}
@@ -134,7 +141,7 @@ export function TaskForm({ task, onClose, onSave, onDelete }: Props) {
 
         <div className="flex items-center gap-2 mt-5">
           <Button onClick={handleSave} disabled={saving || !form.description.trim()} size="sm">
-            {isEdit ? 'save' : 'plant it'}
+            {isEdit ? 'save' : isPlanning ? 'sow it' : 'plant it'}
           </Button>
           <Button onClick={onClose} variant="ghost" size="sm">
             cancel

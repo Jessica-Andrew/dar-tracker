@@ -36,9 +36,13 @@ export function DayView({
 
   const isToday = new Date().toDateString() === date.toDateString();
 
+  const seedlings = useMemo(() => tasks.filter((t) => t.status === 'planned'), [tasks]);
+  const harvested = useMemo(() => tasks.filter((t) => t.status === 'done'), [tasks]);
+
+  // The harvest total only counts work that actually happened.
   const totalSeconds = useMemo(
-    () => tasks.reduce((sum, t) => sum + hoursToSeconds(t.hours), 0),
-    [tasks],
+    () => harvested.reduce((sum, t) => sum + hoursToSeconds(t.hours), 0),
+    [harvested],
   );
 
   // Re-trigger the tickle animation whenever the total changes.
@@ -102,24 +106,56 @@ export function DayView({
           />
         ) : (
           <>
-            <div className="relative flex items-end gap-4 my-5">
-              <SunIllustration size={64} className="absolute right-0 -top-4" />
-              <div
-                key={tickleKey}
-                className="font-display text-4xl font-black leading-none text-clay-500 animate-tickle"
-              >
-                {formatDuration(totalSeconds)}
+            {seedlings.length > 0 && (
+              <div className="mt-4 mb-5">
+                <p className="text-xs uppercase tracking-kicker text-ink-500 mb-1">
+                  Seedlings
+                </p>
+                <div>
+                  {seedlings.map((task) => (
+                    <button
+                      key={task.id}
+                      onClick={() => setFormTask(task)}
+                      className="group flex w-full items-center gap-3 border-b-[1.5px] border-parchment-400 py-2.5 text-left last:border-b-0 transition-colors duration-quick hover:bg-parchment-300/40 focus-visible:outline-none focus-visible:bg-parchment-300/40 animate-task-in"
+                    >
+                      <span
+                        aria-hidden
+                        className="h-3 w-3 flex-shrink-0 rounded-full border-2 border-olive-500 bg-transparent"
+                      />
+                      <p className="flex-1 min-w-0 text-base text-ink-700 truncate">
+                        {task.description}
+                      </p>
+                      <span className="font-display italic text-sm text-ink-300 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-quick">
+                        tend →
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
-              <p className="text-sm text-ink-700 leading-normal pb-1.5 max-w-[220px]">
-                gathered so far
-              </p>
-            </div>
+            )}
 
-            <TaskList
-              tasks={tasks}
-              onEdit={setFormTask}
-              onDelete={(id) => void deleteTask(id)}
-            />
+            {harvested.length > 0 && (
+              <>
+                <div className="relative flex items-end gap-4 my-5">
+                  <SunIllustration size={64} className="absolute right-0 -top-4" />
+                  <div
+                    key={tickleKey}
+                    className="font-display text-4xl font-black leading-none text-clay-500 animate-tickle"
+                  >
+                    {formatDuration(totalSeconds)}
+                  </div>
+                  <p className="text-sm text-ink-700 leading-normal pb-1.5 max-w-[220px]">
+                    gathered so far
+                  </p>
+                </div>
+
+                <TaskList
+                  tasks={harvested}
+                  onEdit={setFormTask}
+                  onDelete={(id) => void deleteTask(id)}
+                />
+              </>
+            )}
 
             <div className="mt-4 flex gap-3">
               <Button onClick={() => setFormTask('new')} size="sm">
@@ -171,6 +207,7 @@ export function DayView({
               blockers: null,
               next_steps: null,
               source: 'merged',
+              status: 'done',
             });
           } else {
             for (const e of entries) {
@@ -182,6 +219,7 @@ export function DayView({
                 blockers: null,
                 next_steps: null,
                 source: 'clockify',
+                status: 'done',
               });
             }
           }

@@ -46,6 +46,7 @@ export type Database = {
           links: string | null
           next_steps: string | null
           source: string
+          status: string
           task_label: string | null
           updated_at: string
           user_id: string
@@ -60,6 +61,7 @@ export type Database = {
           links?: string | null
           next_steps?: string | null
           source?: string
+          status?: string
           task_label?: string | null
           updated_at?: string
           user_id: string
@@ -74,6 +76,7 @@ export type Database = {
           links?: string | null
           next_steps?: string | null
           source?: string
+          status?: string
           task_label?: string | null
           updated_at?: string
           user_id?: string
