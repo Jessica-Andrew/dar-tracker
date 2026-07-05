@@ -30,9 +30,7 @@ export function TaskForm({ task, onClose, onSave, onDelete }: Props) {
     if (isEdit) {
       setForm({
         description: task.description,
-        // A planned task has no meaningful hours yet — show the field
-        // empty rather than a literal "0".
-        hours: task.status === 'planned' ? '' : String(task.hours),
+        hours: task.hours > 0 ? String(task.hours) : '',
         task_label: task.task_label ?? '',
         links: task.links ?? '',
         blockers: task.blockers ?? '',
@@ -43,23 +41,30 @@ export function TaskForm({ task, onClose, onSave, onDelete }: Props) {
     }
   }, [task, isEdit]);
 
-  // Hours are the signal: filled = work that happened (done),
-  // empty = an intention for later (planned).
-  const isPlanning = !form.hours.trim();
+  // Hours are only the planned/done signal when creating a brand new
+  // task. Editing never changes status through this form — pausing a
+  // timed task can leave it with real hours while still a seedling,
+  // and opening the form to tweak a field shouldn't silently finish
+  // it. Status only changes via the explicit finish action.
+  const isPlanning = !isEdit && !form.hours.trim();
 
   const handleSave = async () => {
     if (!form.description.trim()) return;
     setSaving(true);
     try {
-      await onSave({
+      const base = {
         description: form.description.trim(),
         hours: parseFloat(form.hours) || 0,
         task_label: form.task_label.trim() || null,
         links: form.links.trim() || null,
         blockers: form.blockers.trim() || null,
         next_steps: form.next_steps.trim() || null,
-        status: isPlanning ? 'planned' : 'done',
-      });
+      };
+      await onSave(
+        isEdit
+          ? { ...base, status: task.status }
+          : { ...base, status: isPlanning ? 'planned' : 'done' },
+      );
     } finally {
       setSaving(false);
     }

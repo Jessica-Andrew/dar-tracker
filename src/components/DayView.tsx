@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Play, Pause, Check } from 'lucide-react';
 import { GrainSurface } from '@/components/ui/GrainSurface';
 import { DateChip } from '@/components/ui/DateChip';
 import { Button } from '@/components/ui/Button';
@@ -8,6 +9,8 @@ import { TaskForm } from '@/components/TaskForm';
 import { ClockifyImportPanel } from '@/components/ClockifyImportPanel';
 import { EmptyDay } from '@/components/EmptyDay';
 import { formatDuration, hoursToSeconds } from '@/lib/duration';
+import { useClockifyConfig } from '@/lib/hooks/useClockifyConfig';
+import { useTaskTimer } from '@/lib/hooks/useTaskTimer';
 import type { NewTask, Task } from '@/lib/types';
 
 interface Props {
@@ -19,6 +22,12 @@ interface Props {
   deleteTask: (id: string) => Promise<void>;
   onPrev: () => void;
   onNext: () => void;
+}
+
+function formatElapsed(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
 export function DayView({
@@ -33,6 +42,14 @@ export function DayView({
 }: Props) {
   const [formTask, setFormTask] = useState<Task | 'new' | null>(null);
   const [showImport, setShowImport] = useState(false);
+
+  const { config } = useClockifyConfig();
+  const timer = useTaskTimer({
+    tasks,
+    updateTask,
+    workspaceId: config?.workspace_id ?? null,
+    clockifyUserId: config?.clockify_user_id ?? null,
+  });
 
   const isToday = new Date().toDateString() === date.toDateString();
 
@@ -112,25 +129,71 @@ export function DayView({
                   Seedlings
                 </p>
                 <div>
-                  {seedlings.map((task) => (
-                    <button
-                      key={task.id}
-                      onClick={() => setFormTask(task)}
-                      className="group flex w-full items-center gap-3 border-b-[1.5px] border-parchment-400 py-2.5 text-left last:border-b-0 transition-colors duration-quick hover:bg-parchment-300/40 focus-visible:outline-none focus-visible:bg-parchment-300/40 animate-task-in"
-                    >
-                      <span
-                        aria-hidden
-                        className="h-3 w-3 flex-shrink-0 rounded-full border-2 border-olive-500 bg-transparent"
-                      />
-                      <p className="flex-1 min-w-0 text-base text-ink-700 truncate">
-                        {task.description}
-                      </p>
-                      <span className="font-display italic text-sm text-ink-300 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-quick">
-                        tend →
-                      </span>
-                    </button>
-                  ))}
+                  {seedlings.map((task) => {
+                    const isRunning = timer.runningTaskId === task.id;
+                    return (
+                      <div
+                        key={task.id}
+                        className="group flex w-full items-center gap-2 border-b-[1.5px] border-parchment-400 py-2.5 last:border-b-0 animate-task-in"
+                      >
+                        <span
+                          aria-hidden
+                          className={`h-3 w-3 flex-shrink-0 rounded-full border-2 transition-colors duration-base ${
+                            isRunning
+                              ? 'border-clay-500 bg-clay-500 animate-pulse'
+                              : task.hours > 0
+                                ? 'border-clay-500 bg-transparent'
+                                : 'border-olive-500 bg-transparent'
+                          }`}
+                        />
+                        <button
+                          onClick={() => setFormTask(task)}
+                          className="flex-1 min-w-0 text-left"
+                        >
+                          <p className="text-base text-ink-700 truncate">
+                            {task.description}
+                          </p>
+                        </button>
+                        {isRunning ? (
+                          <span className="font-mono text-sm text-clay-500 flex-shrink-0 tabular-nums">
+                            {formatElapsed(timer.elapsedSeconds)}
+                          </span>
+                        ) : task.hours > 0 ? (
+                          <span className="font-mono text-sm text-ink-500 flex-shrink-0 tabular-nums">
+                            {formatDuration(hoursToSeconds(task.hours))}
+                          </span>
+                        ) : null}
+                        <button
+                          onClick={() => timer.toggle(task)}
+                          disabled={timer.pending}
+                          aria-label={isRunning ? 'Pause timer' : 'Start timer'}
+                          className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full transition-colors duration-quick focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 disabled:opacity-50 ${
+                            isRunning
+                              ? 'bg-clay-500 text-parchment-100 hover:bg-clay-600'
+                              : 'text-ink-500 hover:bg-parchment-300 hover:text-clay-500'
+                          }`}
+                        >
+                          {isRunning ? <Pause size={12} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
+                        </button>
+                        <button
+                          onClick={() => void timer.finish(task)}
+                          disabled={timer.pending}
+                          aria-label="Finish task"
+                          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-ink-500 transition-colors duration-quick hover:bg-olive-300/40 hover:text-olive-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 disabled:opacity-50"
+                        >
+                          <Check size={15} />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
+                {timer.error && (
+                  <p className="mt-2 font-display italic text-sm text-danger-500">
+                    {timer.error === 'clockify_not_configured'
+                      ? "Clockify isn't connected yet — import once from Clockify to set it up."
+                      : "Something went wrong with the timer. Try again?"}
+                  </p>
+                )}
               </div>
             )}
 

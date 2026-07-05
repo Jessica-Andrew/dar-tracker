@@ -37,6 +37,7 @@ export type Database = {
       }
       tasks: {
         Row: {
+          active_entry_id: string | null
           blockers: string | null
           created_at: string
           date: string
@@ -48,10 +49,12 @@ export type Database = {
           source: string
           status: string
           task_label: string | null
+          timer_started_at: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          active_entry_id?: string | null
           blockers?: string | null
           created_at?: string
           date: string
@@ -63,10 +66,12 @@ export type Database = {
           source?: string
           status?: string
           task_label?: string | null
+          timer_started_at?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          active_entry_id?: string | null
           blockers?: string | null
           created_at?: string
           date?: string
@@ -78,6 +83,7 @@ export type Database = {
           source?: string
           status?: string
           task_label?: string | null
+          timer_started_at?: string | null
           updated_at?: string
           user_id?: string
         }
