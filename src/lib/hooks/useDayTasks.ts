@@ -25,7 +25,7 @@ export function useDayTasks(date: string) {
       .from('tasks')
       .select('*')
       .eq('date', date)
-      .order('created_at', { ascending: true });
+      .order('position', { ascending: true });
     if (error) setError(error);
     else {
       // Supabase reports `source` as a plain string (it's a text column,
@@ -45,9 +45,18 @@ export function useDayTasks(date: string) {
     const user_id = userData.user?.id;
     if (!user_id) throw new Error('not_signed_in');
 
+    // Slot the new task at the end of its status group (seedlings or
+    // harvested) rather than always at position 0, so newly planted
+    // or imported tasks land after whatever's already there.
+    const sameGroup = tasks.filter(
+      (t) => t.date === (partial.date ?? date) && t.status === partial.status,
+    );
+    const nextPosition =
+      sameGroup.length > 0 ? Math.max(...sameGroup.map((t) => t.position)) + 1 : 0;
+
     const { data, error } = await supabase
       .from('tasks')
-      .insert({ ...partial, user_id })
+      .insert({ ...partial, user_id, position: nextPosition })
       .select()
       .single();
     if (error) throw error;
@@ -88,5 +97,46 @@ export function useDayTasks(date: string) {
     setTasks((prev) => prev.filter((t) => t.id !== id));
   };
 
-  return { tasks, loading, error, addTask, updateTask, deleteTask, reload: load };
+  /**
+   * Persist a new drag order for one status group (seedlings or
+   * harvested). `orderedIds` is the full list of task ids in that
+   * group, in their new order — each gets its array index as its
+   * new position.
+   *
+   * Updates local state immediately (the drag library already shows
+   * the new order optimistically), then writes each new position to
+   * Supabase. If a write fails partway, we reload from the server to
+   * recover a consistent state rather than leaving things half-synced.
+   */
+  const reorderTasks = async (orderedIds: string[]) => {
+    setTasks((prev) => {
+      const positionById = new Map(orderedIds.map((id, i) => [id, i]));
+      return prev
+        .map((t) =>
+          positionById.has(t.id) ? { ...t, position: positionById.get(t.id)! } : t,
+        )
+        .sort((a, b) => a.position - b.position);
+    });
+
+    try {
+      await Promise.all(
+        orderedIds.map((id, i) =>
+          supabase.from('tasks').update({ position: i }).eq('id', id),
+        ),
+      );
+    } catch {
+      void load();
+    }
+  };
+
+  return {
+    tasks,
+    loading,
+    error,
+    addTask,
+    updateTask,
+    deleteTask,
+    reorderTasks,
+    reload: load,
+  };
 }

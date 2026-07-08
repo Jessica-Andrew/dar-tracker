@@ -46,6 +46,7 @@ export type Database = {
           id: string
           links: string | null
           next_steps: string | null
+          position: number
           source: string
           status: string
           task_label: string | null
@@ -63,6 +64,7 @@ export type Database = {
           id?: string
           links?: string | null
           next_steps?: string | null
+          position?: number
           source?: string
           status?: string
           task_label?: string | null
@@ -80,6 +82,7 @@ export type Database = {
           id?: string
           links?: string | null
           next_steps?: string | null
+          position?: number
           source?: string
           status?: string
           task_label?: string | null
