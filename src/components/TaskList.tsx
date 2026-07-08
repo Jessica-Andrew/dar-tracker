@@ -1,4 +1,20 @@
 import { useState } from 'react';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { GripVertical } from 'lucide-react';
 import { SeedMarker } from '@/components/ui/SeedMarker';
 import { formatDuration, hoursToSeconds } from '@/lib/duration';
 import type { Task } from '@/lib/types';
@@ -7,12 +23,21 @@ interface Props {
   tasks: Task[];
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
+  onReorder: (orderedIds: string[]) => void;
 }
 
-export function TaskList({ tasks, onEdit, onDelete }: Props) {
+export function TaskList({ tasks, onEdit, onDelete, onReorder }: Props) {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [confirming, setConfirming] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      // Require a small drag distance before activating, so a plain
+      // tap (to open the edit form) doesn't get swallowed as a drag.
+      activationConstraint: { distance: 6 },
+    }),
+  );
 
   const exitSelectMode = () => {
     setSelectMode(false);
@@ -34,6 +59,16 @@ export function TaskList({ tasks, onEdit, onDelete }: Props) {
     exitSelectMode();
   };
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = tasks.findIndex((t) => t.id === active.id);
+    const newIndex = tasks.findIndex((t) => t.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(tasks, oldIndex, newIndex);
+    onReorder(reordered.map((t) => t.id));
+  };
+
   const count = selectedIds.size;
 
   return (
@@ -48,18 +83,29 @@ export function TaskList({ tasks, onEdit, onDelete }: Props) {
         </button>
       </div>
 
-      {tasks.map((task, i) => (
-        <TaskItem
-          key={task.id}
-          task={task}
-          index={i}
-          selectMode={selectMode}
-          selected={selectedIds.has(task.id)}
-          onActivate={() =>
-            selectMode ? toggleSelect(task.id) : onEdit(task)
-          }
-        />
-      ))}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={tasks.map((t) => t.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          {tasks.map((task, i) => (
+            <TaskItem
+              key={task.id}
+              task={task}
+              index={i}
+              selectMode={selectMode}
+              selected={selectedIds.has(task.id)}
+              onActivate={() =>
+                selectMode ? toggleSelect(task.id) : onEdit(task)
+              }
+            />
+          ))}
+        </SortableContext>
+      </DndContext>
 
       {/* Bulk action bar — shows only when items are selected */}
       {selectMode && count > 0 && (
@@ -112,32 +158,55 @@ interface ItemProps {
 }
 
 function TaskItem({ task, index, selectMode, selected, onActivate }: ItemProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: task.id, disabled: selectMode });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
   return (
-    <button
-      onClick={onActivate}
-      className="group flex w-full items-center gap-3 border-b-[1.5px] border-parchment-400 py-3 text-left last:border-b-0 transition-colors duration-quick hover:bg-parchment-300/40 focus-visible:outline-none focus-visible:bg-parchment-300/40 animate-task-in"
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`group flex w-full items-center gap-2 border-b-[1.5px] border-parchment-400 py-3 last:border-b-0 animate-task-in ${
+        isDragging ? 'opacity-60 bg-parchment-200 rounded-md' : ''
+      }`}
     >
-      {selectMode ? (
-        <Checkbox checked={selected} />
-      ) : (
-        <SeedMarker index={index} />
+      {!selectMode && (
+        <button
+          {...attributes}
+          {...listeners}
+          className="flex-shrink-0 cursor-grab touch-none text-ink-300 opacity-0 transition-opacity duration-quick hover:text-ink-500 group-hover:opacity-100 active:cursor-grabbing"
+          aria-label="Drag to reorder"
+        >
+          <GripVertical size={16} />
+        </button>
       )}
-      <div className="flex-1 min-w-0">
-        <p className="text-base font-medium text-ink-900 truncate">
-          {task.description}
-        </p>
-        {(task.blockers || task.next_steps) && (
-          <p className="text-sm text-ink-500 mt-0.5 truncate">
-            {task.blockers && task.blockers !== 'none' && `⚠ ${task.blockers}`}
-            {task.blockers && task.blockers !== 'none' && task.next_steps ? ' · ' : ''}
-            {task.next_steps && `next: ${task.next_steps}`}
-          </p>
+      <button onClick={onActivate} className="flex flex-1 min-w-0 items-center gap-3 text-left">
+        {selectMode ? (
+          <Checkbox checked={selected} />
+        ) : (
+          <SeedMarker index={index} />
         )}
-      </div>
-      <span className="font-display italic text-md text-ink-700 flex-shrink-0">
-        {formatDuration(hoursToSeconds(task.hours))}
-      </span>
-    </button>
+        <div className="flex-1 min-w-0">
+          <p className="text-base font-medium text-ink-900 truncate">
+            {task.description}
+          </p>
+          {(task.blockers || task.next_steps) && (
+            <p className="text-sm text-ink-500 mt-0.5 truncate">
+              {task.blockers && task.blockers !== 'none' && `⚠ ${task.blockers}`}
+              {task.blockers && task.blockers !== 'none' && task.next_steps ? ' · ' : ''}
+              {task.next_steps && `next: ${task.next_steps}`}
+            </p>
+          )}
+        </div>
+        <span className="font-display italic text-md text-ink-700 flex-shrink-0">
+          {formatDuration(hoursToSeconds(task.hours))}
+        </span>
+      </button>
+    </div>
   );
 }
 

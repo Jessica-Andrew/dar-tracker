@@ -1,6 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { format } from 'date-fns';
-import { Play, Pause, Check } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { Play, Pause, Check, GripVertical } from 'lucide-react';
 import { GrainSurface } from '@/components/ui/GrainSurface';
 import { DateChip } from '@/components/ui/DateChip';
 import { Button } from '@/components/ui/Button';
@@ -21,6 +36,7 @@ interface Props {
   addTask: (partial: NewTask) => Promise<void>;
   updateTask: (id: string, patch: Partial<Task>) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
+  reorderTasks: (orderedIds: string[]) => Promise<void>;
   onPrev: () => void;
   onNext: () => void;
 }
@@ -31,6 +47,95 @@ function formatElapsed(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+interface SeedlingRowProps {
+  task: Task;
+  isRunning: boolean;
+  elapsedSeconds: number;
+  pending: boolean;
+  onOpen: () => void;
+  onToggleTimer: () => void;
+  onFinish: () => void;
+}
+
+function SeedlingRow({
+  task,
+  isRunning,
+  elapsedSeconds,
+  pending,
+  onOpen,
+  onToggleTimer,
+  onFinish,
+}: SeedlingRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: task.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`group flex w-full items-center gap-2 border-b-[1.5px] border-parchment-400 py-2.5 last:border-b-0 animate-task-in ${
+        isDragging ? 'opacity-60 bg-parchment-200 rounded-md' : ''
+      }`}
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        className="flex-shrink-0 cursor-grab touch-none text-ink-300 opacity-0 transition-opacity duration-quick hover:text-ink-500 group-hover:opacity-100 active:cursor-grabbing"
+        aria-label="Drag to reorder"
+      >
+        <GripVertical size={16} />
+      </button>
+      <span
+        aria-hidden
+        className={`h-3 w-3 flex-shrink-0 rounded-full border-2 transition-colors duration-base ${
+          isRunning
+            ? 'border-clay-500 bg-clay-500 animate-pulse'
+            : task.hours > 0
+              ? 'border-clay-500 bg-transparent'
+              : 'border-olive-500 bg-transparent'
+        }`}
+      />
+      <button onClick={onOpen} className="flex-1 min-w-0 text-left">
+        <p className="text-base text-ink-700 truncate">{task.description}</p>
+      </button>
+      {isRunning ? (
+        <span className="font-mono text-sm text-clay-500 flex-shrink-0 tabular-nums">
+          {formatElapsed(elapsedSeconds)}
+        </span>
+      ) : task.hours > 0 ? (
+        <span className="font-mono text-sm text-ink-500 flex-shrink-0 tabular-nums">
+          {formatDuration(hoursToSeconds(task.hours))}
+        </span>
+      ) : null}
+      <button
+        onClick={onToggleTimer}
+        disabled={pending}
+        aria-label={isRunning ? 'Pause timer' : 'Start timer'}
+        className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full transition-colors duration-quick focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 disabled:opacity-50 ${
+          isRunning
+            ? 'bg-clay-500 text-parchment-100 hover:bg-clay-600'
+            : 'text-ink-500 hover:bg-parchment-300 hover:text-clay-500'
+        }`}
+      >
+        {isRunning ? <Pause size={12} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
+      </button>
+      <button
+        onClick={onFinish}
+        disabled={pending}
+        aria-label="Finish task"
+        className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-ink-500 transition-colors duration-quick hover:bg-olive-300/40 hover:text-olive-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 disabled:opacity-50"
+      >
+        <Check size={15} />
+      </button>
+    </div>
+  );
+}
+
 export function DayView({
   date,
   tasks,
@@ -38,6 +143,7 @@ export function DayView({
   addTask,
   updateTask,
   deleteTask,
+  reorderTasks,
   onPrev,
   onNext,
 }: Props) {
@@ -52,11 +158,25 @@ export function DayView({
     clockifyUserId: config?.clockify_user_id ?? null,
   });
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+  );
+
   const dateKey = format(date, 'yyyy-MM-dd');
   const isToday = new Date().toDateString() === date.toDateString();
 
   const seedlings = useMemo(() => tasks.filter((t) => t.status === 'planned'), [tasks]);
   const harvested = useMemo(() => tasks.filter((t) => t.status === 'done'), [tasks]);
+
+  const handleSeedlingDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = seedlings.findIndex((t) => t.id === active.id);
+    const newIndex = seedlings.findIndex((t) => t.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(seedlings, oldIndex, newIndex);
+    void reorderTasks(reordered.map((t) => t.id));
+  };
 
   // The harvest total only counts work that actually happened.
   const totalSeconds = useMemo(
@@ -130,65 +250,31 @@ export function DayView({
                 <p className="text-xs uppercase tracking-kicker text-ink-500 mb-1">
                   Seedlings
                 </p>
-                <div>
-                  {seedlings.map((task) => {
-                    const isRunning = timer.runningTaskId === task.id;
-                    return (
-                      <div
-                        key={task.id}
-                        className="group flex w-full items-center gap-2 border-b-[1.5px] border-parchment-400 py-2.5 last:border-b-0 animate-task-in"
-                      >
-                        <span
-                          aria-hidden
-                          className={`h-3 w-3 flex-shrink-0 rounded-full border-2 transition-colors duration-base ${
-                            isRunning
-                              ? 'border-clay-500 bg-clay-500 animate-pulse'
-                              : task.hours > 0
-                                ? 'border-clay-500 bg-transparent'
-                                : 'border-olive-500 bg-transparent'
-                          }`}
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleSeedlingDragEnd}
+                >
+                  <SortableContext
+                    items={seedlings.map((t) => t.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div>
+                      {seedlings.map((task) => (
+                        <SeedlingRow
+                          key={task.id}
+                          task={task}
+                          isRunning={timer.runningTaskId === task.id}
+                          elapsedSeconds={timer.elapsedSeconds}
+                          pending={timer.pending}
+                          onOpen={() => setFormTask(task)}
+                          onToggleTimer={() => timer.toggle(task)}
+                          onFinish={() => void timer.finish(task)}
                         />
-                        <button
-                          onClick={() => setFormTask(task)}
-                          className="flex-1 min-w-0 text-left"
-                        >
-                          <p className="text-base text-ink-700 truncate">
-                            {task.description}
-                          </p>
-                        </button>
-                        {isRunning ? (
-                          <span className="font-mono text-sm text-clay-500 flex-shrink-0 tabular-nums">
-                            {formatElapsed(timer.elapsedSeconds)}
-                          </span>
-                        ) : task.hours > 0 ? (
-                          <span className="font-mono text-sm text-ink-500 flex-shrink-0 tabular-nums">
-                            {formatDuration(hoursToSeconds(task.hours))}
-                          </span>
-                        ) : null}
-                        <button
-                          onClick={() => timer.toggle(task)}
-                          disabled={timer.pending}
-                          aria-label={isRunning ? 'Pause timer' : 'Start timer'}
-                          className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full transition-colors duration-quick focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 disabled:opacity-50 ${
-                            isRunning
-                              ? 'bg-clay-500 text-parchment-100 hover:bg-clay-600'
-                              : 'text-ink-500 hover:bg-parchment-300 hover:text-clay-500'
-                          }`}
-                        >
-                          {isRunning ? <Pause size={12} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
-                        </button>
-                        <button
-                          onClick={() => void timer.finish(task)}
-                          disabled={timer.pending}
-                          aria-label="Finish task"
-                          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-ink-500 transition-colors duration-quick hover:bg-olive-300/40 hover:text-olive-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 disabled:opacity-50"
-                        >
-                          <Check size={15} />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
                 {timer.error && (
                   <p className="mt-2 font-display italic text-sm text-danger-500">
                     {timer.error === 'clockify_not_configured'
@@ -218,6 +304,7 @@ export function DayView({
                   tasks={harvested}
                   onEdit={setFormTask}
                   onDelete={(id) => void deleteTask(id)}
+                  onReorder={(ids) => void reorderTasks(ids)}
                 />
               </>
             )}

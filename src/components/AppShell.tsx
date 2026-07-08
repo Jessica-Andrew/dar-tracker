@@ -14,7 +14,7 @@ export function AppShell() {
   const [dateKey, setDateKey] = useState(todayKey());
   const date = new Date(dateKey + 'T00:00:00');
 
-  const { tasks, loading, addTask, updateTask, deleteTask, reload } = useDayTasks(dateKey);
+  const { tasks, loading, addTask, updateTask, deleteTask, reorderTasks, reload } = useDayTasks(dateKey);
   const { signOut } = useAuth();
 
   const isViewingToday = dateKey === todayKey();
@@ -48,6 +48,7 @@ export function AppShell() {
           addTask={addTask}
           updateTask={updateTask}
           deleteTask={deleteTask}
+          reorderTasks={reorderTasks}
           onPrev={goPrev}
           onNext={goNext}
         />
