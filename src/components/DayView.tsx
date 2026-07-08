@@ -305,6 +305,13 @@ export function DayView({
                   onEdit={setFormTask}
                   onDelete={(id) => void deleteTask(id)}
                   onReorder={(ids) => void reorderTasks(ids)}
+                  onReopen={(id) => {
+                    const nextPosition =
+                      seedlings.length > 0
+                        ? Math.max(...seedlings.map((t) => t.position)) + 1
+                        : 0;
+                    void updateTask(id, { status: 'planned', position: nextPosition });
+                  }}
                 />
               </>
             )}

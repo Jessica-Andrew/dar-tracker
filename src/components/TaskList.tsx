@@ -14,7 +14,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, RotateCcw } from 'lucide-react';
 import { SeedMarker } from '@/components/ui/SeedMarker';
 import { formatDuration, hoursToSeconds } from '@/lib/duration';
 import type { Task } from '@/lib/types';
@@ -24,9 +24,10 @@ interface Props {
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
   onReorder: (orderedIds: string[]) => void;
+  onReopen: (id: string) => void;
 }
 
-export function TaskList({ tasks, onEdit, onDelete, onReorder }: Props) {
+export function TaskList({ tasks, onEdit, onDelete, onReorder, onReopen }: Props) {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [confirming, setConfirming] = useState(false);
@@ -102,6 +103,7 @@ export function TaskList({ tasks, onEdit, onDelete, onReorder }: Props) {
               onActivate={() =>
                 selectMode ? toggleSelect(task.id) : onEdit(task)
               }
+              onReopen={() => onReopen(task.id)}
             />
           ))}
         </SortableContext>
@@ -155,9 +157,10 @@ interface ItemProps {
   selectMode: boolean;
   selected: boolean;
   onActivate: () => void;
+  onReopen: () => void;
 }
 
-function TaskItem({ task, index, selectMode, selected, onActivate }: ItemProps) {
+function TaskItem({ task, index, selectMode, selected, onActivate, onReopen }: ItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: task.id, disabled: selectMode });
 
@@ -206,6 +209,19 @@ function TaskItem({ task, index, selectMode, selected, onActivate }: ItemProps) 
           {formatDuration(hoursToSeconds(task.hours))}
         </span>
       </button>
+      {!selectMode && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onReopen();
+          }}
+          aria-label="Reopen as seedling"
+          title="Reopen as seedling"
+          className="flex-shrink-0 h-7 w-7 flex items-center justify-center rounded-full text-ink-300 opacity-0 transition-opacity duration-quick hover:bg-parchment-300 hover:text-clay-500 group-hover:opacity-100"
+        >
+          <RotateCcw size={14} />
+        </button>
+      )}
     </div>
   );
 }
