@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { formatDuration, hoursToSeconds } from '@/lib/duration';
 import type { Task } from '@/lib/types';
@@ -50,8 +51,15 @@ export function SlackPreview({ tasks }: Props) {
       <p className="text-xs uppercase tracking-kicker text-ink-500 mb-2">
         Slack message
       </p>
-      <div className="rounded-2xl bg-ink-900 p-5">
-        <pre className="whitespace-pre-wrap break-words font-mono text-sm leading-relaxed text-parchment-200">
+      <div className="relative rounded-2xl bg-ink-900 p-5">
+        <button
+          onClick={() => void handleCopy()}
+          aria-label="Copy report"
+          className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-md text-parchment-300 transition-colors duration-quick hover:bg-parchment-100/10 hover:text-parchment-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500"
+        >
+          {copied ? <Check size={15} /> : <Copy size={15} />}
+        </button>
+        <pre className="whitespace-pre-wrap break-words pr-8 font-mono text-sm leading-relaxed text-parchment-200">
           {report}
         </pre>
       </div>
