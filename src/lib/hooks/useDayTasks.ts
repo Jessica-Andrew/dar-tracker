@@ -6,10 +6,12 @@ import type { NewTask, Task } from '@/lib/types';
  * Load and mutate the current user's tasks for a specific ISO date.
  * RLS on the tasks table ensures we only see our own rows.
  *
- * Callers pass a `partial` without `date` — the hook adds the current
- * date and user_id itself, so consumers don't need to duplicate that.
+ * Every task now carries its own `date` (set by the form, defaulting
+ * to whichever day is currently being viewed) — the hook no longer
+ * silently injects the loaded date, since a task can be planted
+ * directly onto a different day than the one you're viewing.
  */
-export type AddTaskInput = Omit<NewTask, 'date'>;
+export type AddTaskInput = NewTask;
 
 export function useDayTasks(date: string) {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -45,11 +47,18 @@ export function useDayTasks(date: string) {
 
     const { data, error } = await supabase
       .from('tasks')
-      .insert({ ...partial, date, user_id })
+      .insert({ ...partial, user_id })
       .select()
       .single();
     if (error) throw error;
-    setTasks((prev) => [...prev, data as Task]);
+
+    const inserted = data as Task;
+    // Only show it in this list if it was actually planted on the
+    // day currently loaded — it may have been planted directly onto
+    // a different date.
+    if (inserted.date === date) {
+      setTasks((prev) => [...prev, inserted]);
+    }
   };
 
   const updateTask = async (id: string, patch: Partial<Task>) => {
@@ -60,7 +69,17 @@ export function useDayTasks(date: string) {
       .select()
       .single();
     if (error) throw error;
-    setTasks((prev) => prev.map((t) => (t.id === id ? (data as Task) : t)));
+
+    const updated = data as Task;
+    setTasks((prev) => {
+      // If the edit moved this task off the currently loaded date,
+      // it no longer belongs in this list — drop it rather than
+      // showing a task whose date doesn't match the view.
+      if (updated.date !== date) {
+        return prev.filter((t) => t.id !== id);
+      }
+      return prev.map((t) => (t.id === id ? updated : t));
+    });
   };
 
   const deleteTask = async (id: string) => {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { format } from 'date-fns';
 import { Play, Pause, Check } from 'lucide-react';
 import { GrainSurface } from '@/components/ui/GrainSurface';
 import { DateChip } from '@/components/ui/DateChip';
@@ -17,7 +18,7 @@ interface Props {
   date: Date;
   tasks: Task[];
   loading: boolean;
-  addTask: (partial: Omit<NewTask, 'date'>) => Promise<void>;
+  addTask: (partial: NewTask) => Promise<void>;
   updateTask: (id: string, patch: Partial<Task>) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
   onPrev: () => void;
@@ -51,6 +52,7 @@ export function DayView({
     clockifyUserId: config?.clockify_user_id ?? null,
   });
 
+  const dateKey = format(date, 'yyyy-MM-dd');
   const isToday = new Date().toDateString() === date.toDateString();
 
   const seedlings = useMemo(() => tasks.filter((t) => t.status === 'planned'), [tasks]);
@@ -238,6 +240,7 @@ export function DayView({
 
       <TaskForm
         task={formTask}
+        currentDate={dateKey}
         onClose={() => setFormTask(null)}
         onSave={async (data) => {
           if (formTask === 'new') {
@@ -264,6 +267,7 @@ export function DayView({
             const totalHours = Math.round(entries.reduce((s, e) => s + e.hours, 0) * 100) / 100;
             await addTask({
               description: mergeName,
+              date: dateKey,
               hours: totalHours,
               task_label: null,
               links: null,
@@ -276,6 +280,7 @@ export function DayView({
             for (const e of entries) {
               await addTask({
                 description: e.project ? `${e.project} — ${e.description}` : e.description,
+                date: dateKey,
                 hours: Math.round(e.hours * 100) / 100,
                 task_label: null,
                 links: null,

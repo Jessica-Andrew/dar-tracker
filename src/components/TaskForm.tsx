@@ -1,18 +1,23 @@
 import { useEffect, useState } from 'react';
 import { Modal, ModalContent, ModalHeader, ModalTitle, ModalKicker } from '@/components/ui/Modal';
 import { Input, FieldLabel } from '@/components/ui/Input';
+import { DatePicker } from '@/components/ui/DatePicker';
 import { Button } from '@/components/ui/Button';
 import type { NewTask, Task } from '@/lib/types';
 
 interface Props {
   task: Task | 'new' | null;
+  // The day currently being viewed — used as the default date when
+  // planting a brand new task.
+  currentDate: string;
   onClose: () => void;
-  onSave: (data: Omit<NewTask, 'source' | 'date'>) => Promise<void>;
+  onSave: (data: Omit<NewTask, 'source'>) => Promise<void>;
   onDelete: () => Promise<void>;
 }
 
 const emptyForm = {
   description: '',
+  date: '',
   hours: '',
   task_label: '',
   links: '',
@@ -20,9 +25,12 @@ const emptyForm = {
   next_steps: '',
 };
 
-export function TaskForm({ task, onClose, onSave, onDelete }: Props) {
+export function TaskForm({ task, currentDate, onClose, onSave, onDelete }: Props) {
   const isEdit = task !== null && task !== 'new';
   const isOpen = task !== null;
+  // A running timer is mid-session against a specific day — changing
+  // the date out from under it would blur what actually happened.
+  const isRunning = isEdit && !!task.active_entry_id;
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
 
@@ -30,16 +38,19 @@ export function TaskForm({ task, onClose, onSave, onDelete }: Props) {
     if (isEdit) {
       setForm({
         description: task.description,
+        date: task.date,
         hours: task.hours > 0 ? String(task.hours) : '',
         task_label: task.task_label ?? '',
         links: task.links ?? '',
         blockers: task.blockers ?? '',
         next_steps: task.next_steps ?? '',
       });
+    } else if (task === 'new') {
+      setForm({ ...emptyForm, date: currentDate });
     } else {
       setForm(emptyForm);
     }
-  }, [task, isEdit]);
+  }, [task, isEdit, currentDate]);
 
   // Hours are only the planned/done signal when creating a brand new
   // task. Editing never changes status through this form — pausing a
@@ -54,6 +65,7 @@ export function TaskForm({ task, onClose, onSave, onDelete }: Props) {
     try {
       const base = {
         description: form.description.trim(),
+        date: form.date,
         hours: parseFloat(form.hours) || 0,
         task_label: form.task_label.trim() || null,
         links: form.links.trim() || null,
@@ -93,6 +105,20 @@ export function TaskForm({ task, onClose, onSave, onDelete }: Props) {
               placeholder="a short description"
               autoFocus
             />
+          </div>
+
+          <div>
+            <FieldLabel>date</FieldLabel>
+            <DatePicker
+              value={form.date}
+              onChange={(date) => setForm({ ...form, date })}
+              disabled={isRunning}
+            />
+            {isRunning && (
+              <p className="mt-1 text-xs italic text-ink-500">
+                pause the timer to change the date
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-[1fr_74px_74px] gap-3">
