@@ -23,7 +23,7 @@ export function AppShell() {
     <div className="min-h-screen p-4 md:p-6">
       <div className="mx-auto max-w-3xl space-y-6">
         <div className="flex items-center justify-between">
-          <p className="font-display italic text-sm text-clay-500">tenders.dev</p>
+          <p className="font-display italic text-sm text-clay-500">tend</p>
           <button
             onClick={() => void signOut()}
             className="font-display italic text-xs text-ink-500 hover:text-clay-500 transition-colors duration-quick px-1 py-0.5"
