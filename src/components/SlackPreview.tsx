@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { format } from 'date-fns';
 import { Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { formatDuration, hoursToSeconds } from '@/lib/duration';
@@ -6,11 +7,14 @@ import type { Task } from '@/lib/types';
 
 interface Props {
   tasks: Task[];
+  date: Date;
 }
 
-function buildReport(tasks: Task[]): string {
+function buildReport(tasks: Task[], date: Date): string {
   if (tasks.length === 0) return '';
   const lines: string[] = [];
+  lines.push(`*Daily Activity Report - ${format(date, 'do MMM')} |*`);
+  lines.push('');
   tasks.forEach((t, i) => {
     const label = t.task_label ? `${t.task_label}: ${t.description}` : t.description;
     lines.push(`*Task ${i + 1}: ${label}*`);
@@ -25,12 +29,12 @@ function buildReport(tasks: Task[]): string {
   return lines.join('\n');
 }
 
-export function SlackPreview({ tasks }: Props) {
+export function SlackPreview({ tasks, date }: Props) {
   const [copied, setCopied] = useState(false);
 
   const report = useMemo(
-    () => buildReport(tasks.filter((t) => t.status === 'done')),
-    [tasks],
+    () => buildReport(tasks.filter((t) => t.status === 'done'), date),
+    [tasks, date],
   );
 
   const handleCopy = async () => {
