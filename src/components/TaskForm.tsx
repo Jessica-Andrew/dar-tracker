@@ -7,8 +7,6 @@ import type { NewTask, Task } from '@/lib/types';
 
 interface Props {
   task: Task | 'new' | null;
-  // The day currently being viewed — used as the default date when
-  // planting a brand new task.
   currentDate: string;
   onClose: () => void;
   onSave: (data: Omit<NewTask, 'source'>) => Promise<void>;
@@ -18,7 +16,8 @@ interface Props {
 const emptyForm = {
   description: '',
   date: '',
-  hours: '',
+  hoursH: '',
+  hoursM: '',
   task_label: '',
   links: '',
   blockers: '',
@@ -28,18 +27,20 @@ const emptyForm = {
 export function TaskForm({ task, currentDate, onClose, onSave, onDelete }: Props) {
   const isEdit = task !== null && task !== 'new';
   const isOpen = task !== null;
-  // A running timer is mid-session against a specific day — changing
-  // the date out from under it would blur what actually happened.
   const isRunning = isEdit && !!task.active_entry_id;
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (isEdit) {
+      const totalMinutes = Math.round(task.hours * 60);
+      const h = Math.floor(totalMinutes / 60);
+      const m = totalMinutes % 60;
       setForm({
         description: task.description,
         date: task.date,
-        hours: task.hours > 0 ? String(task.hours) : '',
+        hoursH: task.hours > 0 ? String(h) : '',
+        hoursM: task.hours > 0 ? String(m) : '',
         task_label: task.task_label ?? '',
         links: task.links ?? '',
         blockers: task.blockers ?? '',
@@ -53,20 +54,21 @@ export function TaskForm({ task, currentDate, onClose, onSave, onDelete }: Props
   }, [task, isEdit, currentDate]);
 
   // Hours are only the planned/done signal when creating a brand new
-  // task. Editing never changes status through this form — pausing a
-  // timed task can leave it with real hours while still a seedling,
-  // and opening the form to tweak a field shouldn't silently finish
-  // it. Status only changes via the explicit finish action.
-  const isPlanning = !isEdit && !form.hours.trim();
+  // task. Editing never changes status through this form.
+  const isPlanning = !isEdit && !form.hoursH.trim() && !form.hoursM.trim();
 
   const handleSave = async () => {
     if (!form.description.trim()) return;
     setSaving(true);
     try {
+      const h = parseInt(form.hoursH, 10) || 0;
+      const m = parseInt(form.hoursM, 10) || 0;
+      const totalHours = Math.round((h + m / 60) * 100) / 100;
+
       const base = {
         description: form.description.trim(),
         date: form.date,
-        hours: parseFloat(form.hours) || 0,
+        hours: totalHours,
         task_label: form.task_label.trim() || null,
         links: form.links.trim() || null,
         blockers: form.blockers.trim() || null,
@@ -121,7 +123,7 @@ export function TaskForm({ task, currentDate, onClose, onSave, onDelete }: Props
             )}
           </div>
 
-          <div className="grid grid-cols-[1fr_74px_74px] gap-3">
+          <div className="grid grid-cols-[1fr_100px_74px] gap-3">
             <div>
               <FieldLabel optional>links</FieldLabel>
               <Input
@@ -132,13 +134,30 @@ export function TaskForm({ task, currentDate, onClose, onSave, onDelete }: Props
             </div>
             <div>
               <FieldLabel optional="later">hours</FieldLabel>
-              <Input
-                mono
-                value={form.hours}
-                onChange={(e) => setForm({ ...form, hours: e.target.value })}
-                placeholder="1.5"
-                inputMode="decimal"
-              />
+              <div className="flex items-center gap-1">
+                <div className="w-9">
+                  <Input
+                    mono
+                    value={form.hoursH}
+                    onChange={(e) => setForm({ ...form, hoursH: e.target.value })}
+                    placeholder="1"
+                    inputMode="numeric"
+                    className="text-center"
+                  />
+                </div>
+                <span className="text-xs text-ink-500 flex-shrink-0">h</span>
+                <div className="w-9">
+                  <Input
+                    mono
+                    value={form.hoursM}
+                    onChange={(e) => setForm({ ...form, hoursM: e.target.value })}
+                    placeholder="30"
+                    inputMode="numeric"
+                    className="text-center"
+                  />
+                </div>
+                <span className="text-xs text-ink-500 flex-shrink-0">m</span>
+              </div>
             </div>
             <div>
               <FieldLabel optional="opt">tag</FieldLabel>

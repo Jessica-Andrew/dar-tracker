@@ -17,7 +17,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { Play, Pause, Check, GripVertical } from 'lucide-react';
 import { GrainSurface } from '@/components/ui/GrainSurface';
-import { DateChip } from '@/components/ui/DateChip';
+import { DatePicker } from '@/components/ui/DatePicker';
 import { Button } from '@/components/ui/Button';
 import { SunIllustration } from '@/components/ui/SunIllustration';
 import { TaskList } from '@/components/TaskList';
@@ -39,6 +39,7 @@ interface Props {
   reorderTasks: (orderedIds: string[]) => Promise<void>;
   onPrev: () => void;
   onNext: () => void;
+  onDateSelect: (dateKey: string) => void;
 }
 
 function formatElapsed(seconds: number): string {
@@ -146,6 +147,7 @@ export function DayView({
   reorderTasks,
   onPrev,
   onNext,
+  onDateSelect,
 }: Props) {
   const [formTask, setFormTask] = useState<Task | 'new' | null>(null);
   const [showImport, setShowImport] = useState(false);
@@ -227,7 +229,7 @@ export function DayView({
             >
               ←
             </button>
-            <DateChip date={date} />
+            <DatePicker value={dateKey} onChange={onDateSelect} floating />
             <button
               onClick={onNext}
               className="flex h-8 w-8 items-center justify-center rounded-full text-ink-500 transition-colors duration-quick hover:bg-parchment-300 hover:text-clay-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500"

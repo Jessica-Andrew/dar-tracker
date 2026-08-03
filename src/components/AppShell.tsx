@@ -78,6 +78,7 @@ export function AppShell() {
           reorderTasks={reorderTasks}
           onPrev={goPrev}
           onNext={goNext}
+          onDateSelect={setDateKey}
         />
         <SlackPreview tasks={tasks} date={date} />
       </div>

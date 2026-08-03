@@ -9,6 +9,15 @@ interface Options {
   clockifyUserId: string | null;
 }
 
+function formatElapsedForTitle(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  const mm = m.toString().padStart(2, '0');
+  const ss = s.toString().padStart(2, '0');
+  return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
+}
+
 export function useTaskTimer({ tasks, updateTask, workspaceId, clockifyUserId }: Options) {
   const running = tasks.find((t) => !!t.active_entry_id) ?? null;
   const [now, setNow] = useState(() => Date.now());
@@ -26,6 +35,71 @@ export function useTaskTimer({ tasks, updateTask, workspaceId, clockifyUserId }:
   const elapsedSeconds = running?.timer_started_at
     ? Math.max(0, Math.floor((now - new Date(running.timer_started_at).getTime()) / 1000))
     : 0;
+
+  // Surface a running timer in the browser tab title, so it's visible
+  // even when you're on a different tab — the title bar is always
+  // visible regardless of focus, unlike anything inside the page.
+  useEffect(() => {
+    const originalTitle = document.title;
+    if (running) {
+      document.title = `${formatElapsedForTitle(elapsedSeconds)} · Tend`;
+    }
+    return () => {
+      document.title = originalTitle;
+    };
+  }, [running?.id, elapsedSeconds]);
+
+  // Also swap the favicon while a timer's running. Pinned tabs only
+  // show the icon (the title is hidden until you hover), so this is
+  // the one signal that reaches you there.
+  //
+  // Some browsers cache the favicon resource and won't reliably
+  // re-render just from mutating an existing <link>'s href back and
+  // forth — removing and recreating the element forces it to treat
+  // each swap as a genuinely new resource.
+  useEffect(() => {
+    const setFavicon = (href: string) => {
+      const existing = document.querySelectorAll<HTMLLinkElement>('link[rel="icon"]');
+      existing.forEach((el) => el.remove());
+      const link = document.createElement('link');
+      link.rel = 'icon';
+      link.type = 'image/svg+xml';
+      link.href = href;
+      document.head.appendChild(link);
+    };
+
+    setFavicon(running ? '/favicon-active.svg' : '/favicon.svg');
+
+    return () => {
+      setFavicon('/favicon.svg');
+    };
+  }, [running?.id]);
+
+  // Also swap the favicon while a timer's running. Pinned tabs only
+  // show the icon (the title is hidden until you hover), so this is
+  // the one signal that reaches you there.
+  //
+  // Some browsers cache the favicon resource and won't reliably
+  // re-render just from mutating an existing <link>'s href back and
+  // forth — removing and recreating the element forces it to treat
+  // each swap as a genuinely new resource.
+  useEffect(() => {
+    const setFavicon = (href: string) => {
+      const existing = document.querySelectorAll<HTMLLinkElement>('link[rel="icon"]');
+      existing.forEach((el) => el.remove());
+      const link = document.createElement('link');
+      link.rel = 'icon';
+      link.type = 'image/svg+xml';
+      link.href = href;
+      document.head.appendChild(link);
+    };
+
+    setFavicon(running ? '/favicon-active.svg' : '/favicon.svg');
+
+    return () => {
+      setFavicon('/favicon.svg');
+    };
+  }, [running?.id]);
 
   // Stop the clock and fold this session's time into the task's
   // accumulated hours. Does NOT change status — pausing keeps a task
