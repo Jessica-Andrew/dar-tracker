@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { format, addDays, subDays } from 'date-fns';
 import { DayView } from '@/components/DayView';
 import { SlackPreview } from '@/components/SlackPreview';
+import { WeekRollup } from '@/components/WeekRollup';
 import { useDayTasks } from '@/lib/hooks/useDayTasks';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useSeedlingCarryOver } from '@/lib/hooks/useSeedlingCarryOver';
@@ -26,9 +27,9 @@ export function AppShell() {
   useSeedlingCarryOver(handleCarriedOver);
 
   // If the tab is left open across midnight, jump forward to the new
-  // today — but only if you were actually looking at "today" when it
-  // rolled over. If you'd deliberately navigated to a past or future
-  // day, coming back to the tab shouldn't yank you away from it.
+  // today, but only if you were actually looking at "today" when it
+  // rolled over. If you had deliberately navigated to a past or future
+  // day, coming back to the tab should not move you away from it.
   const lastKnownToday = useRef(todayKey());
   useEffect(() => {
     const checkForDayRollover = () => {
@@ -81,6 +82,7 @@ export function AppShell() {
           onDateSelect={setDateKey}
         />
         <SlackPreview tasks={tasks} date={date} />
+        <WeekRollup date={date} dayTasks={tasks} />
       </div>
     </div>
   );
