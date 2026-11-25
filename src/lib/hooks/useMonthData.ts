@@ -1,28 +1,37 @@
 import { useEffect, useState } from 'react';
+import { format, parseISO, startOfMonth, subMonths } from 'date-fns';
 import { supabase } from '@/lib/supabase';
-import type { ActionPlan, Note, Task } from '@/lib/types';
+import type { ActionPlan, Feedback, Note, Task } from '@/lib/types';
 
 interface MonthData {
   tasks: Task[];
   notes: Note[];
   plans: ActionPlan[];
+  feedback: Feedback[];
 }
 
 /**
- * Finished tasks, notes (including plan updates), and all action plans
- * for a date range. Only fetches while `enabled`, and refetches each
- * time it turns on, so the digest is always fresh when you open it.
+ * Finished tasks, notes (including plan updates), all action plans, and
+ * review feedback for a month. Feedback also includes the month before,
+ * since that review is what the current month's work responds to. Only
+ * fetches while `enabled`, and refetches each time it turns on.
  */
 export function useMonthData(startKey: string, endKey: string, enabled: boolean) {
-  const [data, setData] = useState<MonthData>({ tasks: [], notes: [], plans: [] });
+  const [data, setData] = useState<MonthData>({
+    tasks: [],
+    notes: [],
+    plans: [],
+    feedback: [],
+  });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
     setLoading(true);
+    const prevMonthKey = format(startOfMonth(subMonths(parseISO(startKey), 1)), 'yyyy-MM-dd');
     (async () => {
-      const [tasksRes, notesRes, plansRes] = await Promise.all([
+      const [tasksRes, notesRes, plansRes, feedbackRes] = await Promise.all([
         supabase
           .from('tasks')
           .select('*')
@@ -40,12 +49,19 @@ export function useMonthData(startKey: string, endKey: string, enabled: boolean)
           .from('action_plans')
           .select('*')
           .order('created_at', { ascending: true }),
+        supabase
+          .from('feedback')
+          .select('*')
+          .gte('review_month', prevMonthKey)
+          .lte('review_month', endKey)
+          .order('created_at', { ascending: true }),
       ]);
       if (cancelled) return;
       setData({
         tasks: (tasksRes.data ?? []) as Task[],
         notes: (notesRes.data ?? []) as Note[],
         plans: (plansRes.data ?? []) as ActionPlan[],
+        feedback: (feedbackRes.data ?? []) as Feedback[],
       });
       setLoading(false);
     })();

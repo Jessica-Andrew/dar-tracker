@@ -15,11 +15,11 @@ export function GprDigestPanel({ date }: Props) {
 
   const startKey = format(startOfMonth(month), 'yyyy-MM-dd');
   const endKey = format(endOfMonth(month), 'yyyy-MM-dd');
-  const { tasks, notes, plans, loading } = useMonthData(startKey, endKey, open);
+  const { tasks, notes, plans, feedback, loading } = useMonthData(startKey, endKey, open);
 
   const digest = useMemo(
-    () => buildDigest({ month, tasks, notes, plans }),
-    [month, tasks, notes, plans],
+    () => buildDigest({ month, tasks, notes, plans, feedback }),
+    [month, tasks, notes, plans, feedback],
   );
 
   const handleCopy = async () => {

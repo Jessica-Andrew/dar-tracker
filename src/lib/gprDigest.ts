@@ -2,20 +2,31 @@ import { addDays, endOfMonth, format, parseISO, startOfMonth, startOfWeek } from
 import { hoursToSeconds } from '@/lib/duration';
 import { buildWeekRollup, formatGprDuration } from '@/lib/gpr';
 import { COMPETENCIES } from '@/lib/types';
-import type { ActionPlan, Note, Task } from '@/lib/types';
+import type { ActionPlan, Feedback, Note, Task } from '@/lib/types';
 
 interface DigestInput {
   month: Date;
   tasks: Task[];
   notes: Note[];
   plans: ActionPlan[];
+  feedback: Feedback[];
 }
+
+const SOURCE_LABELS: Record<string, string> = { ceo: 'CEO', hr: 'HR', other: 'Other' };
 
 function short(dateKey: string): string {
   return format(parseISO(dateKey), 'MMM dd');
 }
 
-export function buildDigest({ month, tasks, notes, plans }: DigestInput): string {
+function areaLabel(f: Feedback): string {
+  if (f.area === 'overall') return 'Overall';
+  if (f.area === 'work_product') {
+    return f.subject ? `Work product (${f.subject})` : 'Work product';
+  }
+  return COMPETENCIES.find((c) => c.key === f.area)?.label ?? f.area;
+}
+
+export function buildDigest({ month, tasks, notes, plans, feedback }: DigestInput): string {
   const lines: string[] = [];
   const monthStartKey = format(startOfMonth(month), 'yyyy-MM-dd');
   const monthEndKey = format(endOfMonth(month), 'yyyy-MM-dd');
@@ -121,6 +132,23 @@ export function buildDigest({ month, tasks, notes, plans }: DigestInput): string
     const updates = planUpdates(p.id);
     if (updates.length === 0) lines.push('(no updates this month)');
     for (const n of updates) lines.push(`- (${short(n.date)}) ${n.text}`);
+  }
+  lines.push('');
+
+  // Review feedback (this month and the one before)
+  lines.push('FEEDBACK FROM PERFORMANCE REVIEWS');
+  if (feedback.length === 0) lines.push('(none logged)');
+  const reviewMonths = Array.from(new Set(feedback.map((f) => f.review_month))).sort();
+  for (const m of reviewMonths) {
+    lines.push('');
+    lines.push(`${format(parseISO(m), 'MMMM yyyy')} review`);
+    for (const f of feedback.filter((x) => x.review_month === m)) {
+      const parts = [SOURCE_LABELS[f.source] ?? f.source, areaLabel(f)];
+      if (f.rating) parts.push(f.rating);
+      lines.push(
+        `- ${parts.join(' | ')}: ${f.comment}${f.needs_action ? ' (needs action)' : ''}`,
+      );
+    }
   }
 
   return lines.join('\n');
