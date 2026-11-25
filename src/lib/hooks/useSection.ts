@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 
-export type Section = 'today' | 'review';
+export type Section = 'today' | 'review' | 'team';
 
-const SECTIONS: Section[] = ['today', 'review'];
+const SECTIONS: Section[] = ['today', 'review', 'team'];
 
 function readSection(): Section {
   const hash = window.location.hash.replace('#', '');

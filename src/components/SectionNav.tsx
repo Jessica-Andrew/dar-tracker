@@ -4,6 +4,7 @@ import type { Section } from '@/lib/hooks/useSection';
 const LINKS: { key: Section; label: string }[] = [
   { key: 'today', label: 'today' },
   { key: 'review', label: 'review' },
+  { key: 'team', label: 'team' },
 ];
 
 interface Props {

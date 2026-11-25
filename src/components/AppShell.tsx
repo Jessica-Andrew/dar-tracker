@@ -7,6 +7,7 @@ import { GprDigestPanel } from '@/components/GprDigestPanel';
 import { NotesPanel } from '@/components/NotesPanel';
 import { SectionNav } from '@/components/SectionNav';
 import { SlackPreview } from '@/components/SlackPreview';
+import { TeamLogPanel } from '@/components/TeamLogPanel';
 import { WeekRollup } from '@/components/WeekRollup';
 import { useDayTasks } from '@/lib/hooks/useDayTasks';
 import { useAuth } from '@/lib/hooks/useAuth';
@@ -101,6 +102,12 @@ export function AppShell() {
             />
             <ActionPlansPanel key={plansVersion} dateKey={todayKey()} />
             <GprDigestPanel date={date} />
+          </div>
+        )}
+
+        {section === 'team' && (
+          <div className="space-y-6">
+            <TeamLogPanel defaultMonth={new Date()} />
           </div>
         )}
       </div>

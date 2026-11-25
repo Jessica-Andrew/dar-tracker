@@ -53,3 +53,16 @@ export type Feedback = Omit<Tables<'feedback'>, 'source' | 'area'> & {
   source: FeedbackSource;
   area: FeedbackArea;
 };
+
+export type TeamLogKind = 'initiative' | 'decision' | 'deliverable' | 'milestone';
+
+export const TEAM_LOG_KINDS: { key: TeamLogKind; label: string }[] = [
+  { key: 'initiative', label: 'initiative' },
+  { key: 'decision', label: 'decision' },
+  { key: 'deliverable', label: 'deliverable' },
+  { key: 'milestone', label: 'milestone' },
+];
+
+export type TeamLogEntry = Omit<Tables<'team_log'>, 'kind'> & {
+  kind: TeamLogKind;
+};
