@@ -1,8 +1,8 @@
 import { addDays, endOfMonth, format, parseISO, startOfMonth, startOfWeek } from 'date-fns';
 import { hoursToSeconds } from '@/lib/duration';
 import { buildWeekRollup, formatGprDuration } from '@/lib/gpr';
-import { COMPETENCIES } from '@/lib/types';
-import type { ActionPlan, Feedback, Note, Task } from '@/lib/types';
+import { COMPETENCIES, TEAM_LOG_KINDS } from '@/lib/types';
+import type { ActionPlan, Feedback, Note, Task, TeamLogEntry } from '@/lib/types';
 
 interface DigestInput {
   month: Date;
@@ -10,6 +10,7 @@ interface DigestInput {
   notes: Note[];
   plans: ActionPlan[];
   feedback: Feedback[];
+  teamLog: TeamLogEntry[];
 }
 
 const SOURCE_LABELS: Record<string, string> = { ceo: 'CEO', hr: 'HR', other: 'Other' };
@@ -26,7 +27,18 @@ function areaLabel(f: Feedback): string {
   return COMPETENCIES.find((c) => c.key === f.area)?.label ?? f.area;
 }
 
-export function buildDigest({ month, tasks, notes, plans, feedback }: DigestInput): string {
+function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+export function buildDigest({
+  month,
+  tasks,
+  notes,
+  plans,
+  feedback,
+  teamLog,
+}: DigestInput): string {
   const lines: string[] = [];
   const monthStartKey = format(startOfMonth(month), 'yyyy-MM-dd');
   const monthEndKey = format(endOfMonth(month), 'yyyy-MM-dd');
@@ -101,6 +113,20 @@ export function buildDigest({ month, tasks, notes, plans, feedback }: DigestInpu
     lines.push('');
     lines.push('Other notes (untagged)');
     for (const n of otherNotes) lines.push(`- (${short(n.date)}) ${n.text}`);
+  }
+  lines.push('');
+
+  // Design team contributions
+  lines.push('DESIGN TEAM CONTRIBUTIONS');
+  if (teamLog.length === 0) lines.push('(none logged)');
+  for (const k of TEAM_LOG_KINDS) {
+    const group = teamLog.filter((e) => e.kind === k.key);
+    if (group.length === 0) continue;
+    lines.push('');
+    lines.push(`${capitalize(k.label)}s`);
+    for (const e of group) {
+      lines.push(`- (${short(e.date)}) ${e.title}${e.detail ? ` | ${e.detail}` : ''}`);
+    }
   }
   lines.push('');
 
