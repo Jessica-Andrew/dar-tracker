@@ -22,6 +22,7 @@ const emptyForm = {
   links: '',
   blockers: '',
   next_steps: '',
+  outcome: '',
 };
 
 export function TaskForm({ task, currentDate, onClose, onSave, onDelete }: Props) {
@@ -45,6 +46,7 @@ export function TaskForm({ task, currentDate, onClose, onSave, onDelete }: Props
         links: task.links ?? '',
         blockers: task.blockers ?? '',
         next_steps: task.next_steps ?? '',
+        outcome: task.outcome ?? '',
       });
     } else if (task === 'new') {
       setForm({ ...emptyForm, date: currentDate });
@@ -73,6 +75,7 @@ export function TaskForm({ task, currentDate, onClose, onSave, onDelete }: Props
         links: form.links.trim() || null,
         blockers: form.blockers.trim() || null,
         next_steps: form.next_steps.trim() || null,
+        outcome: form.outcome.trim() || null,
       };
       await onSave(
         isEdit
@@ -185,6 +188,15 @@ export function TaskForm({ task, currentDate, onClose, onSave, onDelete }: Props
               value={form.next_steps}
               onChange={(e) => setForm({ ...form, next_steps: e.target.value })}
               placeholder="share with Jessica for review"
+            />
+          </div>
+
+          <div>
+            <FieldLabel optional="for your GPR">outcome</FieldLabel>
+            <Input
+              value={form.outcome}
+              onChange={(e) => setForm({ ...form, outcome: e.target.value })}
+              placeholder="where did it land?"
             />
           </div>
         </div>

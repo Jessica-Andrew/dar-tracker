@@ -19,6 +19,7 @@ import { Play, Pause, Check, GripVertical } from 'lucide-react';
 import { GrainSurface } from '@/components/ui/GrainSurface';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { SunIllustration } from '@/components/ui/SunIllustration';
 import { TaskList } from '@/components/TaskList';
 import { TaskForm } from '@/components/TaskForm';
@@ -55,7 +56,7 @@ interface SeedlingRowProps {
   pending: boolean;
   onOpen: () => void;
   onToggleTimer: () => void;
-  onFinish: () => void;
+  onFinish: (outcome: string) => void;
 }
 
 function SeedlingRow({
@@ -70,6 +71,21 @@ function SeedlingRow({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: task.id });
 
+  // Finishing opens a one-line outcome prompt instead of finishing
+  // immediately. Leaving it blank still finishes the task.
+  const [finishing, setFinishing] = useState(false);
+  const [outcome, setOutcome] = useState('');
+
+  const startFinish = () => {
+    setOutcome(task.outcome ?? '');
+    setFinishing(true);
+  };
+
+  const confirmFinish = () => {
+    setFinishing(false);
+    onFinish(outcome.trim());
+  };
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -79,60 +95,85 @@ function SeedlingRow({
     <div
       ref={setNodeRef}
       style={style}
-      className={`group flex w-full items-center gap-2 border-b-[1.5px] border-parchment-400 py-2.5 last:border-b-0 animate-task-in ${
+      className={`border-b-[1.5px] border-parchment-400 last:border-b-0 animate-task-in ${
         isDragging ? 'opacity-60 bg-parchment-200 rounded-md' : ''
       }`}
     >
-      <button
-        {...attributes}
-        {...listeners}
-        className="flex-shrink-0 cursor-grab touch-none text-ink-300 opacity-0 transition-opacity duration-quick hover:text-ink-500 group-hover:opacity-100 active:cursor-grabbing"
-        aria-label="Drag to reorder"
-      >
-        <GripVertical size={16} />
-      </button>
-      <span
-        aria-hidden
-        className={`h-3 w-3 flex-shrink-0 rounded-full border-2 transition-colors duration-base ${
-          isRunning
-            ? 'border-clay-500 bg-clay-500 animate-pulse'
-            : task.hours > 0
-              ? 'border-clay-500 bg-transparent'
-              : 'border-olive-500 bg-transparent'
-        }`}
-      />
-      <button onClick={onOpen} className="flex-1 min-w-0 text-left">
-        <p className="text-base text-ink-700 truncate">{task.description}</p>
-      </button>
-      {isRunning ? (
-        <span className="font-mono text-sm text-clay-500 flex-shrink-0 tabular-nums">
-          {formatElapsed(elapsedSeconds)}
-        </span>
-      ) : task.hours > 0 ? (
-        <span className="font-mono text-sm text-ink-500 flex-shrink-0 tabular-nums">
-          {formatDuration(hoursToSeconds(task.hours))}
-        </span>
-      ) : null}
-      <button
-        onClick={onToggleTimer}
-        disabled={pending}
-        aria-label={isRunning ? 'Pause timer' : 'Start timer'}
-        className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full transition-colors duration-quick focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 disabled:opacity-50 ${
-          isRunning
-            ? 'bg-clay-500 text-parchment-100 hover:bg-clay-600'
-            : 'text-ink-500 hover:bg-parchment-300 hover:text-clay-500'
-        }`}
-      >
-        {isRunning ? <Pause size={12} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
-      </button>
-      <button
-        onClick={onFinish}
-        disabled={pending}
-        aria-label="Finish task"
-        className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-ink-500 transition-colors duration-quick hover:bg-olive-300/40 hover:text-olive-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 disabled:opacity-50"
-      >
-        <Check size={15} />
-      </button>
+      <div className="group flex w-full items-center gap-2 py-2.5">
+        <button
+          {...attributes}
+          {...listeners}
+          className="flex-shrink-0 cursor-grab touch-none text-ink-300 opacity-0 transition-opacity duration-quick hover:text-ink-500 group-hover:opacity-100 active:cursor-grabbing"
+          aria-label="Drag to reorder"
+        >
+          <GripVertical size={16} />
+        </button>
+        <span
+          aria-hidden
+          className={`h-3 w-3 flex-shrink-0 rounded-full border-2 transition-colors duration-base ${
+            isRunning
+              ? 'border-clay-500 bg-clay-500 animate-pulse'
+              : task.hours > 0
+                ? 'border-clay-500 bg-transparent'
+                : 'border-olive-500 bg-transparent'
+          }`}
+        />
+        <button onClick={onOpen} className="flex-1 min-w-0 text-left">
+          <p className="text-base text-ink-700 truncate">{task.description}</p>
+        </button>
+        {isRunning ? (
+          <span className="font-mono text-sm text-clay-500 flex-shrink-0 tabular-nums">
+            {formatElapsed(elapsedSeconds)}
+          </span>
+        ) : task.hours > 0 ? (
+          <span className="font-mono text-sm text-ink-500 flex-shrink-0 tabular-nums">
+            {formatDuration(hoursToSeconds(task.hours))}
+          </span>
+        ) : null}
+        <button
+          onClick={onToggleTimer}
+          disabled={pending}
+          aria-label={isRunning ? 'Pause timer' : 'Start timer'}
+          className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full transition-colors duration-quick focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 disabled:opacity-50 ${
+            isRunning
+              ? 'bg-clay-500 text-parchment-100 hover:bg-clay-600'
+              : 'text-ink-500 hover:bg-parchment-300 hover:text-clay-500'
+          }`}
+        >
+          {isRunning ? <Pause size={12} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
+        </button>
+        <button
+          onClick={startFinish}
+          disabled={pending}
+          aria-label="Finish task"
+          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-ink-500 transition-colors duration-quick hover:bg-olive-300/40 hover:text-olive-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 disabled:opacity-50"
+        >
+          <Check size={15} />
+        </button>
+      </div>
+
+      {finishing && (
+        <div className="flex items-end gap-2 pb-3 pl-8">
+          <div className="flex-1">
+            <Input
+              value={outcome}
+              onChange={(e) => setOutcome(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') confirmFinish();
+                if (e.key === 'Escape') setFinishing(false);
+              }}
+              placeholder="where did it land? (optional)"
+              autoFocus
+            />
+          </div>
+          <Button onClick={confirmFinish} size="sm">
+            finish
+          </Button>
+          <Button onClick={() => setFinishing(false)} variant="ghost" size="sm">
+            cancel
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
@@ -178,6 +219,15 @@ export function DayView({
     if (oldIndex === -1 || newIndex === -1) return;
     const reordered = arrayMove(seedlings, oldIndex, newIndex);
     void reorderTasks(reordered.map((t) => t.id));
+  };
+
+  // Save the outcome first (if one was typed), then run the normal
+  // finish flow, which pauses a running timer and marks the task done.
+  const finishWithOutcome = async (task: Task, outcome: string) => {
+    if (outcome && outcome !== (task.outcome ?? '')) {
+      await updateTask(task.id, { outcome });
+    }
+    await timer.finish(task);
   };
 
   // The harvest total only counts work that actually happened.
@@ -271,7 +321,7 @@ export function DayView({
                           pending={timer.pending}
                           onOpen={() => setFormTask(task)}
                           onToggleTimer={() => timer.toggle(task)}
-                          onFinish={() => void timer.finish(task)}
+                          onFinish={(outcome) => void finishWithOutcome(task, outcome)}
                         />
                       ))}
                     </div>

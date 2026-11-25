@@ -10,7 +10,7 @@ interface Props {
   date: Date;
 }
 
-function buildReport(tasks: Task[], date: Date): string {
+function buildReport(tasks: Task[], date: Date, includeOutcomes: boolean): string {
   if (tasks.length === 0) return '';
   const lines: string[] = [];
   lines.push(`*Daily Activity Report - ${format(date, 'do MMM')} |*`);
@@ -22,6 +22,9 @@ function buildReport(tasks: Task[], date: Date): string {
     lines.push(`- links: ${t.links || 'None'}`);
     lines.push(`- blockers: ${t.blockers || 'None'}`);
     lines.push(`- next steps: ${t.next_steps || 'None'}`);
+    if (includeOutcomes && t.outcome) {
+      lines.push(`- outcome: ${t.outcome}`);
+    }
     lines.push('');
   });
   const total = tasks.reduce((s, t) => s + hoursToSeconds(t.hours), 0);
@@ -31,10 +34,14 @@ function buildReport(tasks: Task[], date: Date): string {
 
 export function SlackPreview({ tasks, date }: Props) {
   const [copied, setCopied] = useState(false);
+  const [includeOutcomes, setIncludeOutcomes] = useState(false);
+
+  const doneTasks = useMemo(() => tasks.filter((t) => t.status === 'done'), [tasks]);
+  const hasOutcomes = doneTasks.some((t) => !!t.outcome);
 
   const report = useMemo(
-    () => buildReport(tasks.filter((t) => t.status === 'done'), date),
-    [tasks, date],
+    () => buildReport(doneTasks, date, includeOutcomes),
+    [doneTasks, date, includeOutcomes],
   );
 
   const handleCopy = async () => {
@@ -48,13 +55,26 @@ export function SlackPreview({ tasks, date }: Props) {
     setTimeout(() => setCopied(false), 1500);
   };
 
-  if (tasks.every((t) => t.status !== 'done')) return null;
+  if (doneTasks.length === 0) return null;
 
   return (
     <div>
-      <p className="text-xs uppercase tracking-kicker text-ink-500 mb-2">
-        Slack message
-      </p>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs uppercase tracking-kicker text-ink-500">
+          Slack message
+        </p>
+        {hasOutcomes && (
+          <label className="flex cursor-pointer items-center gap-2 font-display text-xs italic text-ink-700">
+            <input
+              type="checkbox"
+              checked={includeOutcomes}
+              onChange={(e) => setIncludeOutcomes(e.target.checked)}
+              className="accent-clay-500"
+            />
+            include outcomes
+          </label>
+        )}
+      </div>
       <div className="relative rounded-2xl bg-ink-900 p-5">
         <button
           onClick={() => void handleCopy()}
