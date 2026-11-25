@@ -59,6 +59,56 @@ export type Database = {
         }
         Relationships: []
       }
+      feedback: {
+        Row: {
+          action_plan_id: string | null
+          area: string
+          comment: string
+          created_at: string
+          id: string
+          needs_action: boolean
+          rating: string | null
+          review_month: string
+          source: string
+          subject: string | null
+          user_id: string
+        }
+        Insert: {
+          action_plan_id?: string | null
+          area: string
+          comment: string
+          created_at?: string
+          id?: string
+          needs_action?: boolean
+          rating?: string | null
+          review_month: string
+          source: string
+          subject?: string | null
+          user_id?: string
+        }
+        Update: {
+          action_plan_id?: string | null
+          area?: string
+          comment?: string
+          created_at?: string
+          id?: string
+          needs_action?: boolean
+          rating?: string | null
+          review_month?: string
+          source?: string
+          subject?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_action_plan_id_fkey"
+            columns: ["action_plan_id"]
+            isOneToOne: false
+            referencedRelation: "action_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notes: {
         Row: {
           action_plan_id: string | null

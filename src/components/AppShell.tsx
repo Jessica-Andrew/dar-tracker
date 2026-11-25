@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { format, addDays, subDays } from 'date-fns';
 import { ActionPlansPanel } from '@/components/ActionPlansPanel';
 import { DayView } from '@/components/DayView';
+import { FeedbackPanel } from '@/components/FeedbackPanel';
 import { GprDigestPanel } from '@/components/GprDigestPanel';
 import { NotesPanel } from '@/components/NotesPanel';
 import { SectionNav } from '@/components/SectionNav';
@@ -19,6 +20,7 @@ function todayKey() {
 export function AppShell() {
   const [dateKey, setDateKey] = useState(todayKey());
   const date = new Date(dateKey + 'T00:00:00');
+  const [plansVersion, setPlansVersion] = useState(0);
 
   const { tasks, loading, addTask, updateTask, deleteTask, reorderTasks, reload } = useDayTasks(dateKey);
   const { signOut } = useAuth();
@@ -93,7 +95,11 @@ export function AppShell() {
         {section === 'review' && (
           <div className="space-y-6">
             <WeekRollup date={date} />
-            <ActionPlansPanel dateKey={todayKey()} />
+            <FeedbackPanel
+              defaultMonth={new Date()}
+              onPlanCreated={() => setPlansVersion((v) => v + 1)}
+            />
+            <ActionPlansPanel key={plansVersion} dateKey={todayKey()} />
             <GprDigestPanel date={date} />
           </div>
         )}

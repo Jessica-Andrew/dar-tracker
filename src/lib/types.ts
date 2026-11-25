@@ -45,3 +45,11 @@ export type Note = Omit<Tables<'notes'>, 'competency'> & {
 };
 
 export type ActionPlan = Tables<'action_plans'>;
+
+export type FeedbackSource = 'ceo' | 'hr' | 'other';
+export type FeedbackArea = 'overall' | 'work_product' | CompetencyKey;
+
+export type Feedback = Omit<Tables<'feedback'>, 'source' | 'area'> & {
+  source: FeedbackSource;
+  area: FeedbackArea;
+};
