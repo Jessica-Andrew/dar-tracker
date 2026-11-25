@@ -4,10 +4,12 @@ import { ActionPlansPanel } from '@/components/ActionPlansPanel';
 import { DayView } from '@/components/DayView';
 import { GprDigestPanel } from '@/components/GprDigestPanel';
 import { NotesPanel } from '@/components/NotesPanel';
+import { SectionNav } from '@/components/SectionNav';
 import { SlackPreview } from '@/components/SlackPreview';
 import { WeekRollup } from '@/components/WeekRollup';
 import { useDayTasks } from '@/lib/hooks/useDayTasks';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { useSection } from '@/lib/hooks/useSection';
 import { useSeedlingCarryOver } from '@/lib/hooks/useSeedlingCarryOver';
 
 function todayKey() {
@@ -20,6 +22,7 @@ export function AppShell() {
 
   const { tasks, loading, addTask, updateTask, deleteTask, reorderTasks, reload } = useDayTasks(dateKey);
   const { signOut } = useAuth();
+  const { section, setSection } = useSection();
 
   const isViewingToday = dateKey === todayKey();
 
@@ -62,33 +65,38 @@ export function AppShell() {
   return (
     <div className="min-h-screen p-4 md:p-6">
       <div className="mx-auto max-w-3xl space-y-6">
-        <div className="flex items-center justify-between">
-          <p className="font-display italic text-sm text-clay-500">tend</p>
-          <button
-            onClick={() => void signOut()}
-            className="font-display italic text-xs text-ink-500 hover:text-clay-500 transition-colors duration-quick px-1 py-0.5"
-          >
-            sign out
-          </button>
+        <SectionNav
+          section={section}
+          onNavigate={setSection}
+          onSignOut={() => void signOut()}
+        />
+
+        {/* Today stays mounted (only hidden) on other sections, so a running
+            timer keeps ticking and the tab title and favicon keep updating. */}
+        <div className={section === 'today' ? 'space-y-6' : 'hidden'}>
+          <DayView
+            date={date}
+            tasks={tasks}
+            loading={loading}
+            addTask={addTask}
+            updateTask={updateTask}
+            deleteTask={deleteTask}
+            reorderTasks={reorderTasks}
+            onPrev={goPrev}
+            onNext={goNext}
+            onDateSelect={setDateKey}
+          />
+          <NotesPanel dateKey={dateKey} />
+          <SlackPreview tasks={tasks} date={date} />
         </div>
 
-        <DayView
-          date={date}
-          tasks={tasks}
-          loading={loading}
-          addTask={addTask}
-          updateTask={updateTask}
-          deleteTask={deleteTask}
-          reorderTasks={reorderTasks}
-          onPrev={goPrev}
-          onNext={goNext}
-          onDateSelect={setDateKey}
-        />
-        <NotesPanel dateKey={dateKey} />
-        <ActionPlansPanel dateKey={dateKey} />
-        <SlackPreview tasks={tasks} date={date} />
-        <WeekRollup date={date} dayTasks={tasks} />
-        <GprDigestPanel date={date} />
+        {section === 'review' && (
+          <div className="space-y-6">
+            <WeekRollup date={date} />
+            <ActionPlansPanel dateKey={todayKey()} />
+            <GprDigestPanel date={date} />
+          </div>
+        )}
       </div>
     </div>
   );
