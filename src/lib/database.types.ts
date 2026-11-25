@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      action_plans: {
+        Row: {
+          archived: boolean
+          created_at: string
+          id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          archived?: boolean
+          created_at?: string
+          id?: string
+          title: string
+          user_id?: string
+        }
+        Update: {
+          archived?: boolean
+          created_at?: string
+          id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       clockify_config: {
         Row: {
           clockify_user_id: string | null
@@ -34,6 +58,47 @@ export type Database = {
           workspace_id?: string | null
         }
         Relationships: []
+      }
+      notes: {
+        Row: {
+          action_plan_id: string | null
+          competency: string | null
+          created_at: string
+          date: string
+          id: string
+          is_key_result: boolean
+          text: string
+          user_id: string
+        }
+        Insert: {
+          action_plan_id?: string | null
+          competency?: string | null
+          created_at?: string
+          date: string
+          id?: string
+          is_key_result?: boolean
+          text: string
+          user_id?: string
+        }
+        Update: {
+          action_plan_id?: string | null
+          competency?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          is_key_result?: boolean
+          text?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notes_action_plan_id_fkey"
+            columns: ["action_plan_id"]
+            isOneToOne: false
+            referencedRelation: "action_plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tasks: {
         Row: {

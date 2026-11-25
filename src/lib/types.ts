@@ -24,3 +24,24 @@ export type NewTask = NewTaskBase & {
 };
 
 export type ClockifyConfig = Tables<'clockify_config'>;
+
+export type CompetencyKey =
+  | 'delivery'
+  | 'learning'
+  | 'problem_solving'
+  | 'focus'
+  | 'alignment';
+
+export const COMPETENCIES: { key: CompetencyKey; label: string }[] = [
+  { key: 'delivery', label: 'Autonomous and Reliable Delivery' },
+  { key: 'learning', label: 'Mastery and Continuous Learning' },
+  { key: 'problem_solving', label: 'Problem Solving Instinct' },
+  { key: 'focus', label: 'Focus and Time Leverage' },
+  { key: 'alignment', label: 'Team Alignment' },
+];
+
+export type Note = Omit<Tables<'notes'>, 'competency'> & {
+  competency: CompetencyKey | null;
+};
+
+export type ActionPlan = Tables<'action_plans'>;
