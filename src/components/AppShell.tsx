@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { format, addDays, subDays } from 'date-fns';
+import { ActionPlansPanel } from '@/components/ActionPlansPanel';
 import { DayView } from '@/components/DayView';
 import { NotesPanel } from '@/components/NotesPanel';
 import { SlackPreview } from '@/components/SlackPreview';
@@ -83,6 +84,7 @@ export function AppShell() {
           onDateSelect={setDateKey}
         />
         <NotesPanel dateKey={dateKey} />
+        <ActionPlansPanel dateKey={dateKey} />
         <SlackPreview tasks={tasks} date={date} />
         <WeekRollup date={date} dayTasks={tasks} />
       </div>
