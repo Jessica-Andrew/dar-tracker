@@ -8,7 +8,10 @@ interface NewNote {
   is_key_result: boolean;
 }
 
-/** Notes for one day. Add and delete update the list immediately. */
+/**
+ * Regular notes for one day. Action plan progress updates are stored in
+ * the same table but belong to their plan card, so they are excluded here.
+ */
 export function useNotes(date: string) {
   const [notes, setNotes] = useState<Note[]>([]);
 
@@ -17,6 +20,7 @@ export function useNotes(date: string) {
       .from('notes')
       .select('*')
       .eq('date', date)
+      .is('action_plan_id', null)
       .order('created_at', { ascending: true });
     if (!error) setNotes((data ?? []) as Note[]);
   }, [date]);
