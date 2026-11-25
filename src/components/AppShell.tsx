@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { format, addDays, subDays } from 'date-fns';
 import { ActionPlansPanel } from '@/components/ActionPlansPanel';
 import { DayView } from '@/components/DayView';
+import { GprDigestPanel } from '@/components/GprDigestPanel';
 import { NotesPanel } from '@/components/NotesPanel';
 import { SlackPreview } from '@/components/SlackPreview';
 import { WeekRollup } from '@/components/WeekRollup';
@@ -87,6 +88,7 @@ export function AppShell() {
         <ActionPlansPanel dateKey={dateKey} />
         <SlackPreview tasks={tasks} date={date} />
         <WeekRollup date={date} dayTasks={tasks} />
+        <GprDigestPanel date={date} />
       </div>
     </div>
   );
