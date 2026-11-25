@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Modal, ModalContent, ModalHeader, ModalTitle, ModalKicker } from '@/components/ui/Modal';
 import { Input, FieldLabel } from '@/components/ui/Input';
+import { SuggestInput } from '@/components/ui/SuggestInput';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { Button } from '@/components/ui/Button';
+import { useDescriptionSuggestions } from '@/lib/hooks/useDescriptionSuggestions';
 import type { NewTask, Task } from '@/lib/types';
 
 interface Props {
@@ -31,6 +33,7 @@ export function TaskForm({ task, currentDate, onClose, onSave, onDelete }: Props
   const isRunning = isEdit && !!task.active_entry_id;
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const suggestions = useDescriptionSuggestions(isOpen);
 
   useEffect(() => {
     if (isEdit) {
@@ -104,9 +107,10 @@ export function TaskForm({ task, currentDate, onClose, onSave, onDelete }: Props
         <div className="space-y-3">
           <div>
             <FieldLabel>what are you working on?</FieldLabel>
-            <Input
+            <SuggestInput
               value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              onChange={(description) => setForm({ ...form, description })}
+              suggestions={suggestions}
               placeholder="a short description"
               autoFocus
             />
