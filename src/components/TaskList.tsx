@@ -14,7 +14,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, RotateCcw } from 'lucide-react';
+import { GripVertical, MoreHorizontal, RotateCcw } from 'lucide-react';
 import { SeedMarker } from '@/components/ui/SeedMarker';
 import { formatDuration, hoursToSeconds } from '@/lib/duration';
 import type { Task } from '@/lib/types';
@@ -25,9 +25,11 @@ interface Props {
   onDelete: (id: string) => void;
   onReorder: (orderedIds: string[]) => void;
   onReopen: (id: string) => void;
+  // Opens the task menu sheet. Shown as a "more" button on phones.
+  onMore: (task: Task) => void;
 }
 
-export function TaskList({ tasks, onEdit, onDelete, onReorder, onReopen }: Props) {
+export function TaskList({ tasks, onEdit, onDelete, onReorder, onReopen, onMore }: Props) {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [confirming, setConfirming] = useState(false);
@@ -74,11 +76,11 @@ export function TaskList({ tasks, onEdit, onDelete, onReorder, onReopen }: Props
 
   return (
     <div className="relative">
-      {/* Select / cancel affordance — small editorial link, top-right */}
-      <div className="flex justify-end -mb-1">
+      {/* Select / cancel affordance, a small editorial link at the top right */}
+      <div className="-mb-1 flex justify-end">
         <button
           onClick={selectMode ? exitSelectMode : () => setSelectMode(true)}
-          className="font-display italic text-xs text-ink-500 hover:text-clay-500 transition-colors duration-quick px-1 py-0.5"
+          className="min-h-[44px] px-2 font-display text-sm italic text-ink-700 transition-colors duration-quick hover:text-clay-600 md:min-h-0 md:px-1 md:py-0.5 md:text-xs"
         >
           {selectMode ? 'cancel' : 'select'}
         </button>
@@ -100,33 +102,32 @@ export function TaskList({ tasks, onEdit, onDelete, onReorder, onReopen }: Props
               index={i}
               selectMode={selectMode}
               selected={selectedIds.has(task.id)}
-              onActivate={() =>
-                selectMode ? toggleSelect(task.id) : onEdit(task)
-              }
+              onActivate={() => (selectMode ? toggleSelect(task.id) : onEdit(task))}
               onReopen={() => onReopen(task.id)}
+              onMore={() => onMore(task)}
             />
           ))}
         </SortableContext>
       </DndContext>
 
-      {/* Bulk action bar — shows only when items are selected */}
+      {/* Bulk action bar, shown only when items are selected */}
       {selectMode && count > 0 && (
-        <div className="mt-3 flex items-center justify-between rounded-md bg-parchment-300 px-4 py-2.5 border border-parchment-400">
+        <div className="mt-3 flex items-center justify-between rounded-md border border-parchment-400 bg-parchment-300 px-4 py-2.5">
           {confirming ? (
             <>
-              <span className="font-display italic text-sm text-ink-900">
+              <span className="font-display text-sm italic text-ink-900">
                 uproot {count} task{count === 1 ? '' : 's'}?
               </span>
-              <div className="flex gap-4 items-center">
+              <div className="flex items-center gap-4">
                 <button
                   onClick={() => setConfirming(false)}
-                  className="text-xs text-ink-500 hover:text-ink-700 transition-colors duration-quick"
+                  className="min-h-[44px] text-xs text-ink-700 transition-colors duration-quick hover:text-ink-900 md:min-h-0"
                 >
                   cancel
                 </button>
                 <button
                   onClick={handleUproot}
-                  className="text-xs font-medium uppercase tracking-wider text-clay-700 hover:text-clay-900 transition-colors duration-quick"
+                  className="min-h-[44px] text-xs font-medium uppercase tracking-wider text-clay-700 transition-colors duration-quick hover:text-clay-900 md:min-h-0"
                 >
                   yes, uproot
                 </button>
@@ -134,12 +135,10 @@ export function TaskList({ tasks, onEdit, onDelete, onReorder, onReopen }: Props
             </>
           ) : (
             <>
-              <span className="text-sm text-ink-700">
-                {count} selected
-              </span>
+              <span className="text-sm text-ink-700">{count} selected</span>
               <button
                 onClick={() => setConfirming(true)}
-                className="font-display italic text-sm text-clay-700 hover:text-clay-900 transition-colors duration-quick"
+                className="min-h-[44px] font-display text-sm italic text-clay-700 transition-colors duration-quick hover:text-clay-900 md:min-h-0"
               >
                 uproot
               </button>
@@ -158,9 +157,18 @@ interface ItemProps {
   selected: boolean;
   onActivate: () => void;
   onReopen: () => void;
+  onMore: () => void;
 }
 
-function TaskItem({ task, index, selectMode, selected, onActivate, onReopen }: ItemProps) {
+function TaskItem({
+  task,
+  index,
+  selectMode,
+  selected,
+  onActivate,
+  onReopen,
+  onMore,
+}: ItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: task.id, disabled: selectMode });
 
@@ -173,54 +181,57 @@ function TaskItem({ task, index, selectMode, selected, onActivate, onReopen }: I
     <div
       ref={setNodeRef}
       style={style}
-      className={`group flex w-full items-center gap-2 border-b-[1.5px] border-parchment-400 py-3 last:border-b-0 animate-task-in ${
-        isDragging ? 'opacity-60 bg-parchment-200 rounded-md' : ''
+      className={`group flex w-full animate-task-in items-center gap-2 border-b-[1.5px] border-parchment-400 py-3 last:border-b-0 ${
+        isDragging ? 'rounded-md bg-parchment-200 opacity-60' : ''
       }`}
     >
       {!selectMode && (
         <button
           {...attributes}
           {...listeners}
-          className="flex-shrink-0 cursor-grab touch-none text-ink-300 opacity-0 transition-opacity duration-quick hover:text-ink-500 group-hover:opacity-100 active:cursor-grabbing"
+          className="hidden flex-shrink-0 cursor-grab touch-none text-ink-500 opacity-0 transition-opacity duration-quick hover:text-ink-700 group-hover:opacity-100 active:cursor-grabbing md:block"
           aria-label="Drag to reorder"
         >
           <GripVertical size={16} />
         </button>
       )}
-      <button onClick={onActivate} className="flex flex-1 min-w-0 items-center gap-3 text-left">
-        {selectMode ? (
-          <Checkbox checked={selected} />
-        ) : (
-          <SeedMarker index={index} />
-        )}
-        <div className="flex-1 min-w-0">
-          <p className="text-base font-medium text-ink-900 truncate">
-            {task.description}
-          </p>
+      <button onClick={onActivate} className="flex min-w-0 flex-1 items-center gap-3 text-left">
+        {selectMode ? <Checkbox checked={selected} /> : <SeedMarker index={index} />}
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-base font-medium text-ink-900">{task.description}</p>
           {(task.blockers || task.next_steps) && (
-            <p className="text-sm text-ink-500 mt-0.5 truncate">
+            <p className="mt-0.5 truncate text-sm text-ink-700">
               {task.blockers && task.blockers !== 'none' && `⚠ ${task.blockers}`}
               {task.blockers && task.blockers !== 'none' && task.next_steps ? ' · ' : ''}
               {task.next_steps && `next: ${task.next_steps}`}
             </p>
           )}
         </div>
-        <span className="font-display italic text-md text-ink-700 flex-shrink-0">
+        <span className="text-md flex-shrink-0 font-display italic text-ink-700">
           {formatDuration(hoursToSeconds(task.hours))}
         </span>
       </button>
       {!selectMode && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onReopen();
-          }}
-          aria-label="Reopen as seedling"
-          title="Reopen as seedling"
-          className="flex-shrink-0 h-7 w-7 flex items-center justify-center rounded-full text-ink-300 opacity-0 transition-opacity duration-quick hover:bg-parchment-300 hover:text-clay-500 group-hover:opacity-100"
-        >
-          <RotateCcw size={14} />
-        </button>
+        <>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onReopen();
+            }}
+            aria-label="Reopen as seedling"
+            title="Reopen as seedling"
+            className="hidden h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-ink-500 opacity-0 transition-opacity duration-quick hover:bg-parchment-300 hover:text-clay-500 group-hover:opacity-100 md:flex"
+          >
+            <RotateCcw size={14} />
+          </button>
+          <button
+            onClick={onMore}
+            aria-label="More actions"
+            className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full text-ink-700 transition-colors duration-quick hover:bg-parchment-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 md:hidden"
+          >
+            <MoreHorizontal size={20} />
+          </button>
+        </>
       )}
     </div>
   );
@@ -231,9 +242,7 @@ function Checkbox({ checked }: { checked: boolean }) {
     <span
       aria-hidden
       className={`inline-flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center rounded-sm border-2 transition-colors duration-quick ${
-        checked
-          ? 'border-clay-500 bg-clay-500'
-          : 'border-ink-500 bg-transparent'
+        checked ? 'border-clay-500 bg-clay-500' : 'border-ink-500 bg-transparent'
       }`}
     >
       {checked && (
