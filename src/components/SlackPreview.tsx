@@ -83,7 +83,7 @@ export function SlackPreview({ tasks, date }: Props) {
         >
           {copied ? <Check size={15} /> : <Copy size={15} />}
         </button>
-        <pre className="whitespace-pre-wrap break-words pr-8 font-mono text-sm leading-relaxed text-parchment-200">
+        <pre className="max-h-72 overflow-y-auto whitespace-pre-wrap break-words pr-8 font-mono text-sm leading-relaxed text-parchment-200">
           {report}
         </pre>
       </div>
