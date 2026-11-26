@@ -6,6 +6,7 @@ import { ReviewScreen } from '@/components/ReviewScreen';
 import { SectionNav } from '@/components/SectionNav';
 import { SlackPreview } from '@/components/SlackPreview';
 import { TeamLogPanel } from '@/components/TeamLogPanel';
+import { TodayCompactRows } from '@/components/TodayCompactRows';
 import { WeekSummaryCard } from '@/components/WeekSummaryCard';
 import { MonthPicker } from '@/components/ui/MonthPicker';
 import { useDayTasks } from '@/lib/hooks/useDayTasks';
@@ -68,7 +69,7 @@ export function AppShell() {
   const showMonthPicker = section === 'review' || section === 'team';
 
   return (
-    <div className="min-h-screen p-4 md:px-10 md:py-6">
+    <div className="min-h-screen p-4 pb-24 md:px-10 md:py-6 md:pb-6">
       <div className="mx-auto max-w-[1160px] space-y-6">
         <SectionNav
           section={section}
@@ -97,8 +98,13 @@ export function AppShell() {
             />
           </div>
           <div className="min-w-0 max-w-[400px] flex-[1_1_340px] space-y-5 lg:sticky lg:top-6">
-            <SlackPreview tasks={tasks} date={date} />
-            <NotesPanel dateKey={dateKey} />
+            <div className="hidden space-y-5 md:block">
+              <SlackPreview tasks={tasks} date={date} />
+              <NotesPanel dateKey={dateKey} />
+            </div>
+            <div className="md:hidden">
+              <TodayCompactRows tasks={tasks} date={date} dateKey={dateKey} />
+            </div>
             <WeekSummaryCard
               date={date}
               dayTasks={tasks}
