@@ -16,9 +16,14 @@ interface MonthData {
  * review feedback, and team log entries for a month. Feedback also
  * includes the month before, since that review is what the current
  * month's work responds to. Only fetches while `enabled`, and refetches
- * each time it turns on.
+ * each time it turns on or `refreshKey` changes.
  */
-export function useMonthData(startKey: string, endKey: string, enabled: boolean) {
+export function useMonthData(
+  startKey: string,
+  endKey: string,
+  enabled: boolean,
+  refreshKey: unknown = 0,
+) {
   const [data, setData] = useState<MonthData>({
     tasks: [],
     notes: [],
@@ -79,7 +84,7 @@ export function useMonthData(startKey: string, endKey: string, enabled: boolean)
     return () => {
       cancelled = true;
     };
-  }, [startKey, endKey, enabled]);
+  }, [startKey, endKey, enabled, refreshKey]);
 
   return { ...data, loading };
 }

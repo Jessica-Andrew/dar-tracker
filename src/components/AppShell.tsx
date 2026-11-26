@@ -1,14 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { format, addDays, startOfMonth, subDays } from 'date-fns';
-import { ActionPlansPanel } from '@/components/ActionPlansPanel';
 import { DayView } from '@/components/DayView';
-import { FeedbackPanel } from '@/components/FeedbackPanel';
-import { GprDigestPanel } from '@/components/GprDigestPanel';
 import { NotesPanel } from '@/components/NotesPanel';
+import { ReviewScreen } from '@/components/ReviewScreen';
 import { SectionNav } from '@/components/SectionNav';
 import { SlackPreview } from '@/components/SlackPreview';
 import { TeamLogPanel } from '@/components/TeamLogPanel';
-import { WeekRollup } from '@/components/WeekRollup';
 import { WeekSummaryCard } from '@/components/WeekSummaryCard';
 import { MonthPicker } from '@/components/ui/MonthPicker';
 import { useDayTasks } from '@/lib/hooks/useDayTasks';
@@ -23,7 +20,6 @@ function todayKey() {
 export function AppShell() {
   const [dateKey, setDateKey] = useState(todayKey());
   const date = new Date(dateKey + 'T00:00:00');
-  const [plansVersion, setPlansVersion] = useState(0);
   // One month shared by Review and Team, always the first day of the month.
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
 
@@ -111,17 +107,7 @@ export function AppShell() {
           </div>
         </div>
 
-        {section === 'review' && (
-          <div className="max-w-3xl space-y-6">
-            <WeekRollup month={month} />
-            <FeedbackPanel
-              month={month}
-              onPlanCreated={() => setPlansVersion((v) => v + 1)}
-            />
-            <ActionPlansPanel key={plansVersion} dateKey={todayKey()} />
-            <GprDigestPanel month={month} />
-          </div>
-        )}
+        {section === 'review' && <ReviewScreen month={month} />}
 
         {section === 'team' && (
           <div className="max-w-3xl space-y-6">
