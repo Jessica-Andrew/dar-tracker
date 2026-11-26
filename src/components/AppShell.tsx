@@ -109,11 +109,7 @@ export function AppShell() {
 
         {section === 'review' && <ReviewScreen month={month} />}
 
-        {section === 'team' && (
-          <div className="max-w-3xl space-y-6">
-            <TeamLogPanel month={month} onMonthChange={setMonth} />
-          </div>
-        )}
+        {section === 'team' && <TeamLogPanel month={month} onMonthChange={setMonth} />}
       </div>
     </div>
   );
