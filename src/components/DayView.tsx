@@ -15,7 +15,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Play, Pause, Check, GripVertical } from 'lucide-react';
+import { Play, Pause, Check, GripVertical, ChevronLeft, ChevronRight } from 'lucide-react';
 import { GrainSurface } from '@/components/ui/GrainSurface';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { Button } from '@/components/ui/Button';
@@ -95,65 +95,65 @@ function SeedlingRow({
     <div
       ref={setNodeRef}
       style={style}
-      className={`border-b-[1.5px] border-parchment-400 last:border-b-0 animate-task-in ${
-        isDragging ? 'opacity-60 bg-parchment-200 rounded-md' : ''
-      }`}
+      className={`border-b-[1.5px] border-parchment-400 animate-task-in ${
+        isDragging ? 'rounded-md bg-parchment-200 opacity-60' : ''
+      } ${finishing ? 'rounded-t-xl bg-parchment-300/40' : ''}`}
     >
-      <div className="group flex w-full items-center gap-2 py-2.5">
+      <div className="group flex min-h-[60px] w-full items-center gap-3">
         <button
           {...attributes}
           {...listeners}
-          className="flex-shrink-0 cursor-grab touch-none text-ink-300 opacity-0 transition-opacity duration-quick hover:text-ink-500 group-hover:opacity-100 active:cursor-grabbing"
+          className="w-4 flex-shrink-0 cursor-grab touch-none text-ink-500 opacity-0 transition-opacity duration-quick hover:text-ink-700 group-hover:opacity-100 active:cursor-grabbing"
           aria-label="Drag to reorder"
         >
           <GripVertical size={16} />
         </button>
         <span
           aria-hidden
-          className={`h-3 w-3 flex-shrink-0 rounded-full border-2 transition-colors duration-base ${
+          className={`h-3.5 w-3.5 flex-shrink-0 rounded-full border-2 transition-colors duration-base ${
             isRunning
-              ? 'border-clay-500 bg-clay-500 animate-pulse'
+              ? 'animate-pulse border-clay-500 bg-clay-500'
               : task.hours > 0
                 ? 'border-clay-500 bg-transparent'
                 : 'border-olive-500 bg-transparent'
           }`}
         />
-        <button onClick={onOpen} className="flex-1 min-w-0 text-left">
-          <p className="text-base text-ink-700 truncate">{task.description}</p>
+        <button onClick={onOpen} className="min-w-0 flex-1 text-left">
+          <p className="truncate text-base text-ink-900">{task.description}</p>
         </button>
         {isRunning ? (
-          <span className="font-mono text-sm text-clay-500 flex-shrink-0 tabular-nums">
-            {formatElapsed(elapsedSeconds)}
+          <span className="flex-shrink-0 font-mono text-sm tabular-nums text-clay-600">
+            running · {formatElapsed(elapsedSeconds)}
           </span>
         ) : task.hours > 0 ? (
-          <span className="font-mono text-sm text-ink-500 flex-shrink-0 tabular-nums">
-            {formatDuration(hoursToSeconds(task.hours))}
+          <span className="flex-shrink-0 font-mono text-sm tabular-nums text-ink-700">
+            paused · {formatDuration(hoursToSeconds(task.hours))}
           </span>
         ) : null}
         <button
           onClick={onToggleTimer}
           disabled={pending}
           aria-label={isRunning ? 'Pause timer' : 'Start timer'}
-          className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full transition-colors duration-quick focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 disabled:opacity-50 ${
+          className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full transition-colors duration-quick focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 disabled:opacity-50 ${
             isRunning
               ? 'bg-clay-500 text-parchment-100 hover:bg-clay-600'
-              : 'text-ink-500 hover:bg-parchment-300 hover:text-clay-500'
+              : 'border-[1.5px] border-parchment-500 text-ink-700 hover:bg-parchment-300 hover:text-clay-600'
           }`}
         >
-          {isRunning ? <Pause size={12} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
+          {isRunning ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" />}
         </button>
         <button
           onClick={startFinish}
           disabled={pending}
           aria-label="Finish task"
-          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-ink-500 transition-colors duration-quick hover:bg-olive-300/40 hover:text-olive-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 disabled:opacity-50"
+          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-ink-700 transition-colors duration-quick hover:bg-olive-300/40 hover:text-olive-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 disabled:opacity-50"
         >
-          <Check size={15} />
+          <Check size={18} />
         </button>
       </div>
 
       {finishing && (
-        <div className="flex items-end gap-2 pb-3 pl-8">
+        <div className="flex items-end gap-4 pb-3.5 pl-[44px] pr-3">
           <div className="flex-1">
             <Input
               value={outcome}
@@ -251,7 +251,7 @@ export function DayView({
 
   if (loading) {
     return (
-      <GrainSurface className="rounded-2xl p-6 min-h-[300px] flex items-center justify-center">
+      <GrainSurface className="flex min-h-[300px] items-center justify-center rounded-3xl p-6">
         <p className="font-display italic text-ink-500">gathering the day…</p>
       </GrainSurface>
     );
@@ -261,128 +261,137 @@ export function DayView({
 
   return (
     <>
-      <GrainSurface className="rounded-2xl px-7 py-6">
-      <div className="relative flex items-start justify-between mb-2">
+      <GrainSurface className="rounded-3xl px-8 py-7">
+        <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-kicker text-ink-500">Daily record</p>
-            <h1 className="mt-1.5 font-display text-2xl font-black leading-tight text-ink-900">
-              {isToday ? "Today's" : "The day's"}
-              <br />
-              <em className="italic font-normal text-clay-500">harvest</em>
+            <h1 className="mt-1 font-display text-2xl font-black leading-tight text-ink-900">
+              {isToday ? "Today's" : "The day's"}{' '}
+              <em className="font-normal italic text-clay-500">harvest</em>
             </h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <button
               onClick={onPrev}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-ink-500 transition-colors duration-quick hover:bg-parchment-300 hover:text-clay-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-ink-700 transition-colors duration-quick hover:bg-parchment-300 hover:text-clay-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500"
               aria-label="Previous day"
             >
-              ←
+              <ChevronLeft size={18} />
             </button>
             <DatePicker value={dateKey} onChange={onDateSelect} floating />
             <button
               onClick={onNext}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-ink-500 transition-colors duration-quick hover:bg-parchment-300 hover:text-clay-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-ink-700 transition-colors duration-quick hover:bg-parchment-300 hover:text-clay-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500"
               aria-label="Next day"
             >
-              →
+              <ChevronRight size={18} />
             </button>
           </div>
         </div>
 
-        {showEmpty ? (
+        <div className="mt-3 flex items-end justify-between">
+          <div className="flex items-end gap-3.5">
+            <div
+              key={tickleKey}
+              className="animate-tickle font-display text-4xl font-black leading-none text-clay-500"
+            >
+              {formatDuration(totalSeconds)}
+            </div>
+            <p className="max-w-[220px] pb-2 text-sm leading-normal text-ink-700">
+              gathered so far
+            </p>
+          </div>
+          <SunIllustration size={72} />
+        </div>
+
+        {showEmpty && (
           <EmptyDay
             onPlantFirst={() => setFormTask('new')}
             onImport={() => setShowImport(true)}
           />
-        ) : (
-          <>
-            {seedlings.length > 0 && (
-              <div className="mt-4 mb-5">
-                <p className="text-xs uppercase tracking-kicker text-ink-500 mb-1">
-                  Seedlings
-                </p>
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={handleSeedlingDragEnd}
-                >
-                  <SortableContext
-                    items={seedlings.map((t) => t.id)}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    <div>
-                      {seedlings.map((task) => (
-                        <SeedlingRow
-                          key={task.id}
-                          task={task}
-                          isRunning={timer.runningTaskId === task.id}
-                          elapsedSeconds={timer.elapsedSeconds}
-                          pending={timer.pending}
-                          onOpen={() => setFormTask(task)}
-                          onToggleTimer={() => timer.toggle(task)}
-                          onFinish={(outcome) => void finishWithOutcome(task, outcome)}
-                        />
-                      ))}
-                    </div>
-                  </SortableContext>
-                </DndContext>
-                {timer.error && (
-                  <p className="mt-2 font-display italic text-sm text-danger-500">
-                    {timer.error === 'clockify_not_configured'
-                      ? "Clockify isn't connected yet — import once from Clockify to set it up."
-                      : "Something went wrong with the timer. Try again?"}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {harvested.length > 0 && (
-              <>
-                <div className="relative flex items-end gap-4 my-5">
-                  <SunIllustration size={64} className="absolute right-0 -top-4" />
-                  <div
-                    key={tickleKey}
-                    className="font-display text-4xl font-black leading-none text-clay-500 animate-tickle"
-                  >
-                    {formatDuration(totalSeconds)}
-                  </div>
-                  <p className="text-sm text-ink-700 leading-normal pb-1.5 max-w-[220px]">
-                    gathered so far
-                  </p>
-                </div>
-
-                <TaskList
-                  tasks={harvested}
-                  onEdit={setFormTask}
-                  onDelete={(id) => void deleteTask(id)}
-                  onReorder={(ids) => void reorderTasks(ids)}
-                  onReopen={(id) => {
-                    const nextPosition =
-                      seedlings.length > 0
-                        ? Math.max(...seedlings.map((t) => t.position)) + 1
-                        : 0;
-                    void updateTask(id, { status: 'planned', position: nextPosition });
-                  }}
-                />
-              </>
-            )}
-
-            <div className="mt-4 flex gap-3">
-              <Button onClick={() => setFormTask('new')} size="sm">
-                + plant a task
-              </Button>
-              <Button
-                onClick={() => setShowImport(true)}
-                variant="ghost"
-                size="sm"
-              >
-                gather from Clockify
-              </Button>
-            </div>
-          </>
         )}
       </GrainSurface>
+
+      {!showEmpty && (
+        <>
+          <section className="mt-8">
+            <div className="flex min-h-[44px] items-center justify-between">
+              <p className="text-xs uppercase tracking-kicker text-ink-500">
+                Seedlings · {seedlings.length}
+              </p>
+              <div className="flex items-center gap-5">
+                <Button onClick={() => setShowImport(true)} variant="ghost" size="sm">
+                  gather from Clockify
+                </Button>
+                <Button onClick={() => setFormTask('new')} size="sm">
+                  + plant a task
+                </Button>
+              </div>
+            </div>
+
+            {seedlings.length > 0 ? (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleSeedlingDragEnd}
+              >
+                <SortableContext
+                  items={seedlings.map((t) => t.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div>
+                    {seedlings.map((task) => (
+                      <SeedlingRow
+                        key={task.id}
+                        task={task}
+                        isRunning={timer.runningTaskId === task.id}
+                        elapsedSeconds={timer.elapsedSeconds}
+                        pending={timer.pending}
+                        onOpen={() => setFormTask(task)}
+                        onToggleTimer={() => timer.toggle(task)}
+                        onFinish={(outcome) => void finishWithOutcome(task, outcome)}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            ) : (
+              <p className="py-3 font-display text-sm italic text-ink-500">
+                no seedlings yet, plant what you plan to work on
+              </p>
+            )}
+
+            {timer.error && (
+              <p className="mt-2 font-display text-sm italic text-danger-500">
+                {timer.error === 'clockify_not_configured'
+                  ? "Clockify isn't connected yet — import once from Clockify to set it up."
+                  : 'Something went wrong with the timer. Try again?'}
+              </p>
+            )}
+          </section>
+
+          {harvested.length > 0 && (
+            <section className="mt-8">
+              <p className="mb-1 text-xs uppercase tracking-kicker text-ink-500">
+                Harvested · {harvested.length}
+              </p>
+              <TaskList
+                tasks={harvested}
+                onEdit={setFormTask}
+                onDelete={(id) => void deleteTask(id)}
+                onReorder={(ids) => void reorderTasks(ids)}
+                onReopen={(id) => {
+                  const nextPosition =
+                    seedlings.length > 0
+                      ? Math.max(...seedlings.map((t) => t.position)) + 1
+                      : 0;
+                  void updateTask(id, { status: 'planned', position: nextPosition });
+                }}
+              />
+            </section>
+          )}
+        </>
+      )}
 
       <TaskForm
         task={formTask}
