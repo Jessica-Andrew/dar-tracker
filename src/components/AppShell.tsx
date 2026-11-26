@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { format, addDays, subDays } from 'date-fns';
+import { format, addDays, startOfMonth, subDays } from 'date-fns';
 import { ActionPlansPanel } from '@/components/ActionPlansPanel';
 import { DayView } from '@/components/DayView';
 import { FeedbackPanel } from '@/components/FeedbackPanel';
@@ -10,6 +10,7 @@ import { SlackPreview } from '@/components/SlackPreview';
 import { TeamLogPanel } from '@/components/TeamLogPanel';
 import { WeekRollup } from '@/components/WeekRollup';
 import { WeekSummaryCard } from '@/components/WeekSummaryCard';
+import { MonthPicker } from '@/components/ui/MonthPicker';
 import { useDayTasks } from '@/lib/hooks/useDayTasks';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useSection } from '@/lib/hooks/useSection';
@@ -23,6 +24,8 @@ export function AppShell() {
   const [dateKey, setDateKey] = useState(todayKey());
   const date = new Date(dateKey + 'T00:00:00');
   const [plansVersion, setPlansVersion] = useState(0);
+  // One month shared by Review and Team, always the first day of the month.
+  const [month, setMonth] = useState(() => startOfMonth(new Date()));
 
   const { tasks, loading, addTask, updateTask, deleteTask, reorderTasks, reload } = useDayTasks(dateKey);
   const { signOut } = useAuth();
@@ -66,6 +69,8 @@ export function AppShell() {
   const goPrev = () => setDateKey(format(subDays(date, 1), 'yyyy-MM-dd'));
   const goNext = () => setDateKey(format(addDays(date, 1), 'yyyy-MM-dd'));
 
+  const showMonthPicker = section === 'review' || section === 'team';
+
   return (
     <div className="min-h-screen p-4 md:px-10 md:py-6">
       <div className="mx-auto max-w-[1160px] space-y-6">
@@ -73,6 +78,9 @@ export function AppShell() {
           section={section}
           onNavigate={setSection}
           onSignOut={() => void signOut()}
+          trailing={
+            showMonthPicker ? <MonthPicker month={month} onChange={setMonth} /> : undefined
+          }
         />
 
         {/* Today stays mounted (only hidden) on other sections, so a running
@@ -105,19 +113,19 @@ export function AppShell() {
 
         {section === 'review' && (
           <div className="max-w-3xl space-y-6">
-            <WeekRollup date={date} />
+            <WeekRollup month={month} />
             <FeedbackPanel
-              defaultMonth={new Date()}
+              month={month}
               onPlanCreated={() => setPlansVersion((v) => v + 1)}
             />
             <ActionPlansPanel key={plansVersion} dateKey={todayKey()} />
-            <GprDigestPanel date={date} />
+            <GprDigestPanel month={month} />
           </div>
         )}
 
         {section === 'team' && (
           <div className="max-w-3xl space-y-6">
-            <TeamLogPanel defaultMonth={new Date()} />
+            <TeamLogPanel month={month} onMonthChange={setMonth} />
           </div>
         )}
       </div>

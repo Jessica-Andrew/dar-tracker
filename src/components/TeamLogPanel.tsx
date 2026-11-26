@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { addMonths, format, parseISO, startOfMonth, subMonths } from 'date-fns';
+import { format, parseISO, startOfMonth } from 'date-fns';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { DatePicker } from '@/components/ui/DatePicker';
@@ -36,11 +36,12 @@ function Chip({
 }
 
 interface Props {
-  defaultMonth: Date;
+  // Always the first day of the month, set by the shared month picker.
+  month: Date;
+  onMonthChange: (month: Date) => void;
 }
 
-export function TeamLogPanel({ defaultMonth }: Props) {
-  const [month, setMonth] = useState(() => startOfMonth(defaultMonth));
+export function TeamLogPanel({ month, onMonthChange }: Props) {
   const { entries, addEntry, deleteEntry } = useTeamLog(month);
 
   const [kind, setKind] = useState<TeamLogKind>('initiative');
@@ -64,7 +65,7 @@ export function TeamLogPanel({ defaultMonth }: Props) {
       setTitle('');
       setDetail('');
       // Jump to the month the entry landed in, so you can see it.
-      setMonth(startOfMonth(parseISO(date)));
+      onMonthChange(startOfMonth(parseISO(date)));
     } catch {
       setError("Couldn't save that entry. Try again?");
     } finally {
@@ -123,25 +124,9 @@ export function TeamLogPanel({ defaultMonth }: Props) {
         )}
 
         <div className="mt-5 border-t-[1.5px] border-parchment-400 pt-4">
-          <div className="mb-3 flex items-center gap-2">
-            <button
-              onClick={() => setMonth((m) => subMonths(m, 1))}
-              aria-label="Previous month"
-              className="flex h-7 w-7 items-center justify-center rounded-full text-ink-500 transition-colors duration-quick hover:bg-parchment-300 hover:text-clay-500"
-            >
-              ←
-            </button>
-            <p className="font-display text-sm font-black text-ink-900">
-              {format(month, 'MMMM yyyy')}
-            </p>
-            <button
-              onClick={() => setMonth((m) => addMonths(m, 1))}
-              aria-label="Next month"
-              className="flex h-7 w-7 items-center justify-center rounded-full text-ink-500 transition-colors duration-quick hover:bg-parchment-300 hover:text-clay-500"
-            >
-              →
-            </button>
-          </div>
+          <p className="mb-3 font-display text-sm font-black text-ink-900">
+            {format(month, 'MMMM yyyy')}
+          </p>
 
           {entries.length === 0 ? (
             <p className="font-display text-sm italic text-ink-500">

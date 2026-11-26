@@ -1,16 +1,34 @@
-import { useMemo, useState } from 'react';
-import { addWeeks, endOfWeek, format, startOfWeek, subWeeks } from 'date-fns';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  addWeeks,
+  endOfWeek,
+  format,
+  isSameMonth,
+  startOfMonth,
+  startOfWeek,
+  subWeeks,
+} from 'date-fns';
 import { Copy, Check } from 'lucide-react';
 import { useWeekTasks } from '@/lib/hooks/useWeekTasks';
 import { buildWeekRollup } from '@/lib/gpr';
 
 interface Props {
-  // Which week to open on. After that, the arrows take over.
-  date: Date;
+  month: Date;
 }
 
-export function WeekRollup({ date }: Props) {
-  const [anchor, setAnchor] = useState(date);
+function anchorFor(month: Date): Date {
+  const today = new Date();
+  return isSameMonth(today, month) ? today : startOfMonth(month);
+}
+
+export function WeekRollup({ month }: Props) {
+  const [anchor, setAnchor] = useState(() => anchorFor(month));
+
+  // When the shared month changes, jump to a week inside it.
+  useEffect(() => {
+    setAnchor(anchorFor(month));
+  }, [month]);
+
   const weekStart = startOfWeek(anchor, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(anchor, { weekStartsOn: 1 });
   const startKey = format(weekStart, 'yyyy-MM-dd');

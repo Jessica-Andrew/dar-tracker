@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { addMonths, format, startOfMonth, subMonths } from 'date-fns';
+import { format, subMonths } from 'date-fns';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -59,12 +59,12 @@ function Chip({
 }
 
 interface Props {
-  defaultMonth: Date;
+  // Always the first day of the month, set by the shared month picker.
+  month: Date;
   onPlanCreated: () => void;
 }
 
-export function FeedbackPanel({ defaultMonth, onPlanCreated }: Props) {
-  const [month, setMonth] = useState(() => startOfMonth(defaultMonth));
+export function FeedbackPanel({ month, onPlanCreated }: Props) {
   const { history, entries, addFeedback, deleteFeedback, createPlanFrom } =
     useFeedback(month);
 
@@ -130,25 +130,9 @@ export function FeedbackPanel({ defaultMonth, onPlanCreated }: Props) {
         Review feedback
       </p>
       <div className="rounded-2xl border border-parchment-400 bg-parchment-200 p-5">
-        <div className="mb-4 flex items-center gap-2">
-          <button
-            onClick={() => setMonth((m) => subMonths(m, 1))}
-            aria-label="Previous month"
-            className="flex h-7 w-7 items-center justify-center rounded-full text-ink-500 transition-colors duration-quick hover:bg-parchment-300 hover:text-clay-500"
-          >
-            ←
-          </button>
-          <p className="font-display text-sm font-black text-ink-900">
-            {format(month, 'MMMM yyyy')}
-          </p>
-          <button
-            onClick={() => setMonth((m) => addMonths(m, 1))}
-            aria-label="Next month"
-            className="flex h-7 w-7 items-center justify-center rounded-full text-ink-500 transition-colors duration-quick hover:bg-parchment-300 hover:text-clay-500"
-          >
-            →
-          </button>
-        </div>
+        <p className="mb-4 font-display text-sm font-black text-ink-900">
+          {format(month, 'MMMM yyyy')}
+        </p>
 
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">

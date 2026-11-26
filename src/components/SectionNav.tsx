@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import type { Section } from '@/lib/hooks/useSection';
 
@@ -11,9 +12,11 @@ interface Props {
   section: Section;
   onNavigate: (section: Section) => void;
   onSignOut: () => void;
+  // Shown before "sign out", for controls that belong to a section.
+  trailing?: ReactNode;
 }
 
-export function SectionNav({ section, onNavigate, onSignOut }: Props) {
+export function SectionNav({ section, onNavigate, onSignOut, trailing }: Props) {
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-baseline gap-5">
@@ -36,12 +39,15 @@ export function SectionNav({ section, onNavigate, onSignOut }: Props) {
           ))}
         </nav>
       </div>
-      <button
-        onClick={onSignOut}
-        className="font-display italic text-xs text-ink-500 hover:text-clay-500 transition-colors duration-quick px-1 py-0.5"
-      >
-        sign out
-      </button>
+      <div className="flex items-center gap-6">
+        {trailing}
+        <button
+          onClick={onSignOut}
+          className="font-display italic text-xs text-ink-500 hover:text-clay-500 transition-colors duration-quick px-1 py-0.5"
+        >
+          sign out
+        </button>
+      </div>
     </div>
   );
 }
